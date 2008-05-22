@@ -35,36 +35,36 @@ int main(int argc, char** argv) {
 	if(argc != 6) {
 		printf("0Wrong Parameter Count\n");
 		DEBUG_LOG("0Wrong Parameter Count\n");	
-		closelog();		
+		closelog();
 		return 0;
-	}	
-	
+	}
+
 	// Host , Datenbank, User, Password
-	
-	db.init_by_str(|server|, |database|, |user|, |password|);
-	
-	s_move_data* move = new s_move_data;	
-	memset(move, 0, sizeof(s_move_data));	
-	
+
+	db.init_by_str("localhost", "taku_stfc", "taku_stfc", "y7LB2bT1");
+
+	s_move_data* move = new s_move_data;
+	memset(move, 0, sizeof(s_move_data));
+
 	int winner = 0;
-	
+
 #if VERBOSE >= 2
 	double start_time, end_time;
-	
+
 	start_time = get_current_time();
 #endif
-	
+
 	if(!prepare_combat(move, argv)) goto exit;
-	
+
 #if VERBOSE >= 2
 	end_time = get_current_time();
-	
+
 	DEBUG_LOG("* prepare complete, time: %.3lfs\n", end_time - start_time);
 #else
 	DEBUG_LOG("* prepare complete\n");
 #endif
-	
-	
+
+
 #if VERBOSE >= 2
 	start_time = get_current_time();
 #endif
@@ -72,38 +72,38 @@ int main(int argc, char** argv) {
 	winner = process_combat(move);
 
 	if(winner == 0) goto exit;
-	
+
 #if VERBOSE >= 2
 	end_time = get_current_time();
-	
+
 	DEBUG_LOG("* process complete, time: %.3lfs\n", end_time - start_time);
 #else
 	DEBUG_LOG("* process complete\n");
 #endif
-			
-			
+
+
 #if VERBOSE >= 2
 	start_time = get_current_time();
 #endif
 
 	finish_combat(move, winner, argv);
-	
+
 #if VERBOSE >= 2
 	end_time = get_current_time();
-	
+
 	DEBUG_LOG("* finish complete, time: %.3lfs\n", end_time - start_time);
 #else
 	DEBUG_LOG("* finish complete\n");
 #endif
-	
 
-exit:	
+
+exit:
 	safe_delete_array(move->atk_fleets);
 	safe_delete_array(move->atk_ships);
 	safe_delete_array(move->dfd_fleets);
 	safe_delete_array(move->dfd_ships);
-	
-	safe_delete(move);	
+
+	safe_delete(move);
 	closelog();
 	return 0;
 }
