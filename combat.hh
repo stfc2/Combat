@@ -145,33 +145,34 @@ class cshipclass {
 
 struct s_move_data {
 	int n_atk_fleets;
-	int n_dfd_fleets;	
-	
+	int n_dfd_fleets;
+
 	s_fleet* atk_fleets;
-	s_fleet* dfd_fleets;		
-		
-	int n_atk_ships;		
-	int n_dfd_ships;	
+	s_fleet* dfd_fleets;
+
+	int n_atk_ships;
+	int n_dfd_ships;
 
 	s_ship* atk_ships;
-	s_ship* dfd_ships;	
-	
+	s_ship* dfd_ships;
+
 	int n_ship_templates;
-		
+
 // späteres Optimieren
-//	list<cshipclass*> atk_ships_list;	
-//	list<cshipclass*> dfd_ships_list;	
+//	list<cshipclass*> atk_ships_list;
+//	list<cshipclass*> dfd_ships_list;
 //	list<cshipclass*> global_ships_list
-	
-	int dest;	
-	
+
+	int dest;
+	int user_id; // Attacker userID
+
 	short n_large_orbital_defense;
 	short destroyed_large_orbital_defense;
-	
+
 	short n_small_orbital_defense;
 	short destroyed_small_orbital_defense;
-	
-	bool all_orbital;	
+
+	bool all_orbital;
 };
 
 
