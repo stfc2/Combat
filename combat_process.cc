@@ -1,10 +1,10 @@
 /*    
 	This file is part of STFC.
 	Copyright 2006-2007 by Michael Krauss (info@stfc2.de) and Tobias Gafner
-		
+
 	STFC is based on STGC,
 	Copyright 2003-2007 by Florian Brede (florian_brede@hotmail.com) and Philipp Schmidt
-	
+
     STFC is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation; either version 3 of the License, or
@@ -23,7 +23,7 @@
 #include "combat.hh"
 
 list<cshipclass*>::iterator atk_ship_it;
-list<cshipclass*>::iterator dfd_ship_it;	
+list<cshipclass*>::iterator dfd_ship_it;
 
 
 struct cshipclass_ptr_cmp{
@@ -66,7 +66,7 @@ bool cshipclass::check_target()
 	if (this->target->ship_reference->hitpoints<=0)
 	{
 		this->target->num_attackers--;
-		this->target=NULL;			
+		this->target=NULL;
 		return 0;
 	}
 	return 1;
@@ -76,13 +76,13 @@ bool cshipclass::check_target()
 bool cshipclass::get_target(list<cshipclass*> *ship_list)
 {
 	if (!this->ship_reference) return 0;
-	
+
 	this->target = NULL;
 	double rate = 1.7976931348623158e+308;
-	
+
 	// wir suchen das beste target aus im normalfall max 50
 	int count=0;
-	
+
 	if (this->party==0)
 	{
 		while(1)
@@ -94,7 +94,7 @@ bool cshipclass::get_target(list<cshipclass*> *ship_list)
 				if (test_rate < rate)
 				{
 					rate=test_rate;
-					this->target=(*dfd_ship_it);			
+					this->target=(*dfd_ship_it);
 				}
 			}
 			
@@ -116,18 +116,18 @@ bool cshipclass::get_target(list<cshipclass*> *ship_list)
 				if (test_rate < rate)
 				{
 					rate=test_rate;
-					this->target=(*atk_ship_it);			
+					this->target=(*atk_ship_it);
 				}
 			}
-			
+
 			++atk_ship_it;
 			if (atk_ship_it==ship_list->end()) atk_ship_it=ship_list->begin();
 			count++;
 			if (count>100 && this->target) 
 			break;
 		};
-	}		
-						
+	}
+
 	if (!this->target) return 0;
 	this->target->num_attackers++;
 	return 1;
@@ -139,89 +139,189 @@ bool cshipclass::shoot()
 //		if (!this->target) return 0;
 //		if (!this->target->ship_reference) return 0;
 //		if (!this->ship_reference) return 0;
-	
+
 	// hitchance = reaktion + bereitschaft + wendigkeit + sensoren
 	float hitchance = this->ship_reference->tpl.value_6	+ this->ship_reference->tpl.value_7
-						+ this->ship_reference->tpl.value_8 + this->ship_reference->tpl.value_11;	
+						+ this->ship_reference->tpl.value_8 + this->ship_reference->tpl.value_11;
 	hitchance *= 0.1f;
 	if (hitchance>12)	hitchance = 12;
 	if (hitchance<1)	hitchance = 1;
 
 	int hit = rand()%14;
 	if (hit>hitchance) return 0;
-	
-	
+
+
 	// defchance = (reaktion + wendigkeit*1.5) * (tarnung_target / tarnung_attacker)
 	float defchance =	this->target->ship_reference->tpl.value_6	+ this->target->ship_reference->tpl.value_8 * 1.5f;
 	defchance *= (this->target->ship_reference->tpl.value_12==0 ? 1 : this->target->ship_reference->tpl.value_12) / (this->ship_reference->tpl.value_12==0 ? 1 : this->ship_reference->tpl.value_12);
 	defchance *= 0.1f;
-	if (defchance>18)	defchance = 18;
+	//if (defchance>18)	defchance = 18;
+	// 04/04/08 - CD: Increase chance of defense 
+	if (defchance>36)	defchance = 36;
 	if (defchance<1)	defchance = 1;
 	if (rand()%120 <= defchance) return 0;
-	
-		
+
 	// schaden berechnen:
 	// schaden = lw + lw * experience/7500 + sw  + sw * experience/6000
-  	float damage = this->ship_reference->tpl.value_1 + 
+	float damage /*= this->ship_reference->tpl.value_1 + 
 	this->ship_reference->tpl.value_1 * ((float)this->ship_reference->experience/7500.0f) + 
 	this->ship_reference->tpl.value_2 + 
 	this->ship_reference->tpl.value_2 * ((float)this->ship_reference->experience/6000.0f);
-	damage *= 0.25;
+	damage *= 0.25*/;
+
+	// DC ---- Damages from phasers
+	float phasers_dmg = this->ship_reference->tpl.value_1 + 
+	this->ship_reference->tpl.value_1 * ((float)this->ship_reference->experience/7500.0f);
+	phasers_dmg *= 0.25;
+	//DEBUG_LOG("Calculated phasers's damage: %.3f\n",phasers_dmg);
+
+	// DC ---- Damages from torpedoes
+	float torpedoes_dmg = this->ship_reference->tpl.value_2 +
+	this->ship_reference->tpl.value_2 * ((float)this->ship_reference->experience/6000.0f);
+	torpedoes_dmg *= 0.25;
+	//DEBUG_LOG("Calculated torpedoes's damage: %.3f\n",torpedoes_dmg);
+	//DC ----
+
 	// berechnen, wieviel durchkommt:
 	// tilefactor = 0.5 + reaktion/100 + bereitschaft / 200 + rand(0,100) / 1000
 	float tile = 0.5f + 
 	this->target->ship_reference->tpl.value_6 * 0.01f + 
 	this->target->ship_reference->tpl.value_7 * 0.005f + 
 	((float)(rand()%100)) / 1000.0f; // gott würfelt doch!
-  	damage /= tile;
+	/*damage /= tile;
 	if (damage>10000.0f) damage=10000.0f;
+	*/
+
+	// DC ---- Il fuoco dei phaser risente meno della capacit evasiva della nave rispetto a quello dei siluri
+	phasers_dmg /= (tile*0.90);
+	if (phasers_dmg > 10000.0f) phasers_dmg = 10000.0f;
+	//DEBUG_LOG("Adjusted phasers's damage: %.3f\n",phasers_dmg);
+
+	torpedoes_dmg /= (tile*1.10);
+	if (torpedoes_dmg > 10000.0f) torpedoes_dmg = 10000.0f;
+	//DEBUG_LOG("Adjusted torpedoes's damage: %.3f\n",torpedoes_dmg);
 	// neue schild / hüllenwerte berechnen:
 
-       int restdamage = 0;
-       
-	if (this->target->ship_reference->shields>0) 
+	int restdamage = 0;
+	/*
+	if (this->target->ship_reference->shields>0)
 	{
-
-              if (damage > this->target->ship_reference->shields)
-              {
-                restdamage = (int)damage - (int)this->target->ship_reference->shields;
-                this->target->ship_reference->shields=0;
-                this->target->ship_reference->hitpoints -= (int)restdamage/3;
-
-                this->target->ship_reference->changed = true;
-
-              }
-              else
-              {
-		this->target->ship_reference->shields -= (int)damage;
-		if (this->target->ship_reference->shields<0) this->target->ship_reference->shields=0;
-              }
+		if (damage > this->target->ship_reference->shields)
+		{
+			restdamage = (int)damage - (int)this->target->ship_reference->shields;
+			this->target->ship_reference->shields=0;
+			this->target->ship_reference->hitpoints -= (int)restdamage/3;
+	
+			this->target->ship_reference->changed = true;
+		}
+		else
+		{
+			this->target->ship_reference->shields -= (int)damage;
+			if (this->target->ship_reference->shields<0) this->target->ship_reference->shields=0;
+		}
 	}
 	else
 	{
+		this->target->ship_reference->changed = true;
+
+		this->target->ship_reference->hitpoints -= (int)damage;
+		if (this->target->ship_reference->hitpoints<0) this->target->ship_reference->hitpoints=0;
+	}
+	*/
+	// DC ---- new dmg code
+#if VERBOSE >= 3
+	DEBUG_LOG("\nThis is the turn of the: %s\n",(this->party==ATTACKER)?"ATTACKER":"DEFENDER");
+#endif
+
+	// First: Firing phasers
+	if (this->target->ship_reference->shields>0) 
+	{
+		damage = (phasers_dmg*1.15);
+
+#if VERBOSE >= 3
+		DEBUG_LOG("Shield up: phasers damage inflicted: %.3f\n",damage);
+#endif
+
+		if (damage > this->target->ship_reference->shields)
+		{
+			restdamage = (int)damage - (int)this->target->ship_reference->shields;
+			this->target->ship_reference->shields=0;
+			this->target->ship_reference->hitpoints -= (int)restdamage/3;
+
+			this->target->ship_reference->changed = true;
+		}
+		else
+		{
+			this->target->ship_reference->shields -= (int)damage;
+			if (this->target->ship_reference->shields<0) this->target->ship_reference->shields=0;
+		}
+	}
+	else
+	{
+		damage = (phasers_dmg*0.25);
+
+#if VERBOSE >= 3		
+		DEBUG_LOG("Shield down: phasers damage inflicted: %.3f\n",damage);
+#endif
+
 		this->target->ship_reference->changed = true;
 		
 		this->target->ship_reference->hitpoints -= (int)damage;
 		if (this->target->ship_reference->hitpoints<0) this->target->ship_reference->hitpoints=0;
 	}
+	// Then firing Torpedoes...
+	if (this->target->ship_reference->shields>0) 
+	{
+		damage = (torpedoes_dmg*0.25);
+
+#if VERBOSE >= 3
+		DEBUG_LOG("Shield up: torpedoes damage inflicted: %.3f\n",damage);
+#endif
+		if (damage > this->target->ship_reference->shields)
+		{
+			restdamage = (int)damage - (int)this->target->ship_reference->shields;
+			this->target->ship_reference->shields=0;
+			this->target->ship_reference->hitpoints -= (int)restdamage/3;
+
+			this->target->ship_reference->changed = true;
+		}
+		else
+		{
+			this->target->ship_reference->shields -= (int)damage;
+			if (this->target->ship_reference->shields<0) this->target->ship_reference->shields=0;
+		}
+	}
+	else
+	{
+		damage = (torpedoes_dmg*1.15);
+
+#if VERBOSE >= 3
+		DEBUG_LOG("Shield down: torpedoes damage inflicted: %.3f\n",damage);
+#endif
+		this->target->ship_reference->changed = true;
+		
+		this->target->ship_reference->hitpoints -= (int)damage;
+		if (this->target->ship_reference->hitpoints<0) this->target->ship_reference->hitpoints=0;
+	}
+	// DC ----
 	#ifdef KAZON_TORPEDO_SUICIDE
-	if (this->ship_reference->tpl.ship_torso==0 && this->ship_reference->tpl.value_1>0) // nur der kazon scout hat waffen, daher reichen diese merkmale f�r eine identifikation
+	if (this->ship_reference->tpl.ship_torso==0 && this->ship_reference->tpl.value_1>0) // nur der kazon scout hat waffen, daher reichen diese merkmale fr eine identifikation
 	{
 		this->target->ship_reference->changed = true;
-					
-		this->ship_reference->hitpoints-=4;	
+
+		this->ship_reference->hitpoints-=4;
 		if (this->ship_reference->hitpoints<0) this->ship_reference->hitpoints=0;
 	}
 	#endif
 	
 	if (this->target->ship_reference->hitpoints<=0) return 1;
 	return 0;
-}      	
+}
 
 s_ship *create_large_orbital()
 {
 	s_ship *tmp = new s_ship;
-	
+
 	tmp->ship_id=-1;
 	tmp->fleet = NULL;
 	tmp->experience=10;	
@@ -252,7 +352,7 @@ s_ship *create_large_orbital()
 s_ship *create_small_orbital()
 {
 	s_ship *tmp = new s_ship;
-	
+
 	tmp->ship_id=-2;
 	tmp->fleet = NULL;
 	tmp->experience=10;	
@@ -287,16 +387,16 @@ int process_combat(s_move_data* move_data)
 	list<cshipclass*> global_ship_list; // diese liste wird beim kampf iteriert und enthält alle schiffe
 	list<cshipclass*> attacker_ship_list; // diese liste dient dem schnellen auffinden eines neuen targets
 	list<cshipclass*> defender_ship_list; // diese liste dient dem schnellen auffinden eines neuen targets	
-	
+
 	int c=0;
-	
+
 	// zunächst kommt die überprüfung, ob wenigstens ein schiff waffen hat (wenn nur normale scouts kämpfen, tritt dieser fall ein)
 	float sum_weapons=0;
 	for (c=0; c<move_data->n_atk_ships; ++c)
 		sum_weapons+=move_data->atk_ships[c].tpl.value_1+move_data->atk_ships[c].tpl.value_2;
 	for (c=0; c<move_data->n_dfd_ships; ++c)
 		sum_weapons+=move_data->dfd_ships[c].tpl.value_1+move_data->dfd_ships[c].tpl.value_2;
-	
+
 	if (sum_weapons==0 && move_data->n_large_orbital_defense==0 && move_data->n_small_orbital_defense==0)
 	{
 		DEBUG_LOG("none of the ships carries a weapon, enable scout-fight-mode\n");
@@ -306,7 +406,7 @@ int process_combat(s_move_data* move_data)
 		for (c=0; c<move_data->n_dfd_ships; ++c)
 			move_data->dfd_ships[c].tpl.value_1=move_data->dfd_ships[c].tpl.value_2=100;
 	}
-	
+
 	// angreifende schiffe in die liste
 	for (c=0; c<move_data->n_atk_ships; ++c)
 	{
@@ -315,8 +415,8 @@ int process_combat(s_move_data* move_data)
 		tmp->party=ATTACKER;
 		tmp->target=NULL;
 		tmp->num_attackers=0;
-		global_ship_list.push_back(tmp);		
-		attacker_ship_list.push_back(tmp);		
+		global_ship_list.push_back(tmp);
+		attacker_ship_list.push_back(tmp);
 	}
 
 
@@ -324,47 +424,47 @@ int process_combat(s_move_data* move_data)
 	for (c=0; c<move_data->n_dfd_ships; ++c)
 	{
 		cshipclass *tmp=new cshipclass;
-		tmp->ship_reference=&move_data->dfd_ships[c];		
+		tmp->ship_reference=&move_data->dfd_ships[c];
 		tmp->party=DEFENDER;
 		tmp->target=NULL;
 		tmp->num_attackers=0;
-		global_ship_list.push_back(tmp);		
-		defender_ship_list.push_back(tmp);		
-	}	
+		global_ship_list.push_back(tmp);
+		defender_ship_list.push_back(tmp);
+	}
 
 	// gr. orbitalgeschütze in die liste
 	for (c=0; c<move_data->n_large_orbital_defense; ++c)
-	{	
+	{
 		cshipclass *tmp=new cshipclass;
-		tmp->ship_reference=create_large_orbital();		
+		tmp->ship_reference=create_large_orbital();
 		tmp->party=DEFENDER;
 		tmp->target=NULL;
 		tmp->num_attackers=0;
-		global_ship_list.push_back(tmp);		
-		defender_ship_list.push_back(tmp);		
+		global_ship_list.push_back(tmp);
+		defender_ship_list.push_back(tmp);
 	}
 	// kl. orbitalgeschütze in die liste
 	for (c=0; c<move_data->n_small_orbital_defense; ++c)
 	{	
 		cshipclass *tmp=new cshipclass;
-		tmp->ship_reference=create_small_orbital();		
+		tmp->ship_reference=create_small_orbital();
 		tmp->party=DEFENDER;
 		tmp->target=NULL;
 		tmp->num_attackers=0;
-		global_ship_list.push_back(tmp);		
-		defender_ship_list.push_back(tmp);		
+		global_ship_list.push_back(tmp);
+		defender_ship_list.push_back(tmp);
 	}
-		
+
 	// alle schiffe in der global-liste nach firststrike sortieren (attacker und defender listen müssen nicht sortiert werden)
 	global_ship_list.sort(cshipclass_ptr_cmp());
-	
-#if VERBOSE >= 3	
+
+#if VERBOSE >= 3
 	double last_time=get_current_time();
 	int num_shots=0;
 	int num_targetchanges=0;
 	int num_loops=0;
 	int num_victims=0;
-	
+
 	DEBUG_LOG("\n");
 #endif
 
@@ -373,7 +473,7 @@ int process_combat(s_move_data* move_data)
 
 	if (defender_count==0) return -1;
 	if (attacker_count==0) return 1;
-	
+
 	// jetzt wird gekämpft!
 	list<cshipclass*>::iterator it=global_ship_list.begin();
 	atk_ship_it=attacker_ship_list.begin();
@@ -390,31 +490,31 @@ int process_combat(s_move_data* move_data)
 
 
 	while(attacker_count>0 && defender_count>0)
-	{	
+	{
 #if VERBOSE >= 3
-		num_loops++;		
+		num_loops++;
 #endif
 
 		if((*it)->ship_reference->hitpoints<=0)
 		{
 			++it;
-			if (it==global_ship_list.end()) it=global_ship_list.begin();			
+			if (it==global_ship_list.end()) it=global_ship_list.begin();
 			continue;
 		}
-		
+
 		// 1.) target prüfen:
 		if (!(*it)->check_target()) // kein target?
 		{
 			if ( !(*it)->get_target( &(((*it)->party==0) ? defender_ship_list : attacker_ship_list) ) ) // target suchen
 			{
 				DEBUG_LOG("unrecoverable error during target-selection, fight aborted\n");
-				
+
 				return 0;
 			}
-#if VERBOSE >= 3			
+#if VERBOSE >= 3
 			else num_targetchanges++;
 #endif
-		}		
+		}
 
 		// 2.) schießen:
 		if ((*it)->shoot()) // falls true, wurde das target zerstört
@@ -423,18 +523,18 @@ int process_combat(s_move_data* move_data)
 			float div2=(*it)->target->ship_reference->tpl.value_1+(*it)->target->ship_reference->tpl.value_2;
 			(*it)->ship_reference->xp_gained += (float) (10.0f * fmin(10,(div2/((div1 == 0) ? 1 : div1))));
 			(*it)->ship_reference->experience +=(float) (10.0f * fmin(10,(div2/((div1 == 0) ? 1 : div1))));
-			
+
 			(*it)->ship_reference->changed = true;
-			
+
 			if ((*it)->target->party==0) attacker_count--;
 			else defender_count--;
 			(*it)->target->num_attackers--;
 			(*it)->target=NULL;
-#if VERBOSE >= 3			
+#if VERBOSE >= 3
 			num_victims++;
 #endif
 		} // end of: target wurde zerstört
-		
+
 		// 2a.) wenn der schütze ein kazon torpedo war und suizid aktiv ist, müssen wir noch auf selbstmord prüfen
 		#ifdef KAZON_TORPEDO_SUICIDE
 		if ((*it)->ship_reference->hitpoints<=0)
@@ -443,37 +543,37 @@ int process_combat(s_move_data* move_data)
 			else defender_count--;
 		} // end of: schiff beging suizid
 		#endif
-		
-		
+
+
 		++it;
 		if (it==global_ship_list.end()) it=global_ship_list.begin();
-		
-#if VERBOSE >= 3	
+
+#if VERBOSE >= 3
 	num_shots++;
-	
+
 	if (get_current_time()-last_time>1.0f)
 	{
 		DEBUG_LOG("%d loops: %d shots, %d target-changes, %d+%d ships alive, %d victims\n",num_loops,num_shots,num_targetchanges, attacker_count, defender_count, num_victims);
 		last_time=get_current_time();
 		num_shots=0;
-		num_targetchanges=0;		
+		num_targetchanges=0;
 		num_loops=0;
 	}
-#endif	
-	
+#endif
+
 	}; // ende des kampfloops
-	
+
 #if VERBOSE >= 3
 	DEBUG_LOG("\n");
 #endif
-	
+
 	// der kampf ist beendet, wir zählen die toten orbitalgeschütze (--> das könnte man auch bereits beim zerstören machen!)
-	
+
 	for(list<cshipclass*>::iterator search = defender_ship_list.begin(); search != defender_ship_list.end(); ++search)
 	{
 		if ((*search)->ship_reference->ship_id==-1 && (*search)->ship_reference->hitpoints<=0) ++move_data->destroyed_large_orbital_defense;
 		if ((*search)->ship_reference->ship_id==-2 && (*search)->ship_reference->hitpoints<=0) ++move_data->destroyed_small_orbital_defense;
 	}
-	
+
 	return ((attacker_count == 0) ? 1 : -1);
 }
