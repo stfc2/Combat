@@ -334,7 +334,7 @@ s_ship *create_large_orbital()
 	tmp->shields=0;
 	tmp->tpl.ship_torso=4;
 	tmp->tpl.value_1=PLANETARY_DEFENSE_ATTACK;
-	tmp->tpl.value_2=PLANETARY_DEFENSE_ATTACK;
+	tmp->tpl.value_2=PLANETARY_DEFENSE_ATTACK2;
 	tmp->tpl.value_3=0;
 	tmp->tpl.value_4=0;
 	tmp->tpl.value_5=0;
@@ -365,7 +365,7 @@ s_ship *create_small_orbital()
 	tmp->shields=0;
 	tmp->tpl.ship_torso=4;
 	tmp->tpl.value_1=SPLANETARY_DEFENSE_ATTACK;
-	tmp->tpl.value_2=SPLANETARY_DEFENSE_ATTACK;
+	tmp->tpl.value_2=SPLANETARY_DEFENSE_ATTACK2;
 	tmp->tpl.value_3=0;
 	tmp->tpl.value_4=0;
 	tmp->tpl.value_5=0;

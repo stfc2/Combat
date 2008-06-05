@@ -29,10 +29,12 @@
 #define ATTACKER 0
 #define DEFENDER 1
 
-#define SPLANETARY_DEFENSE_ATTACK 150
-#define SPLANETARY_DEFENSE_DEFENSE 200
-#define PLANETARY_DEFENSE_ATTACK 200
-#define PLANETARY_DEFENSE_DEFENSE 300
+#define SPLANETARY_DEFENSE_ATTACK 350
+#define SPLANETARY_DEFENSE_ATTACK2 0
+#define SPLANETARY_DEFENSE_DEFENSE 1000
+#define PLANETARY_DEFENSE_ATTACK 100
+#define PLANETARY_DEFENSE_ATTACK2 400
+#define PLANETARY_DEFENSE_DEFENSE 2500
 
 #define SHIP_TORSO_TRANSPORTER 1
 
@@ -49,7 +51,7 @@
 #define SHIP_RANK_7_LIMIT 99
 #define SHIP_RANK_8_LIMIT 100
 #define SHIP_RANK_9_LIMIT 101
-	
+
 #define SHIP_RANK_0_BONUS 0
 #define SHIP_RANK_1_BONUS 0.02
 #define SHIP_RANK_2_BONUS 0.05
@@ -59,13 +61,13 @@
 #define SHIP_RANK_6_BONUS 0.20
 #define SHIP_RANK_7_BONUS 0.24
 #define SHIP_RANK_8_BONUS 0.28
-#define SHIP_RANK_9_BONUS 0.32	
+#define SHIP_RANK_9_BONUS 0.32
 
 #define OPTIMAL_0 0.05
 #define OPTIMAL_1 0.25
 #define OPTIMAL_2 0.55
 #define OPTIMAL_3 0.25
-	
+
 #define MAX_SHIP_CLASS 3
 
 
@@ -73,7 +75,7 @@ struct s_fleet {
 	int fleet_id;
 	int n_ships;
 	int n_transporter;
-	
+
 	int resource_1;
 	int resource_2;
 	int resource_3;
@@ -110,9 +112,9 @@ struct s_ship_template {
 
 struct s_ship {
 	int ship_id;
-	s_fleet* fleet;	
+	s_fleet* fleet;
 	int user_id; // brauchen wir das wirklich?
-	float experience;	
+	float experience;
 	float xp_gained;
 	bool changed;
 	float hitpoints;

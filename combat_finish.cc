@@ -312,7 +312,7 @@ bool finish_combat(s_move_data* move, int winner, char** argv) {
 #ifndef SIMULATOR
 		if(!db.query("UPDATE planets "
 					 "SET building_10 = building_10 - %i, "
-					  	 "building_13 = building_13 - %i "
+					     "building_13 = building_13 - %i "
 					 "WHERE planet_id = %i", move->destroyed_large_orbital_defense, move->destroyed_small_orbital_defense, move->dest)) {
 
 			DEBUG_LOG("Could not update planetary data\n");
