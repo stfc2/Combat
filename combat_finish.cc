@@ -192,7 +192,7 @@ bool finish_combat(s_move_data* move, int winner, char** argv) {
 			sAttackerWon    = "<br>The attacking ships have won the fight.<br><br>";
 			sDefenderWon    = "<br>The defending ships have won the fight.<br><br>";
 			sAttackDestroy1 = "From the victorious ships became...<br>... <b>%i</b> destroyed<br>... <b>%i</b> damaged<br>";
-			sAttackDestroy2 = "&nbsp;&nbsp;&nbsp;&nbsp;of which <b>%i</b> seriously<br>&nbsp;&nbsp;&nbsp;&nbsp;und <b>%i</b> very seriously<br>";
+			sAttackDestroy2 = "&nbsp;&nbsp;&nbsp;&nbsp;of which <b>%i</b> seriously<br>&nbsp;&nbsp;&nbsp;&nbsp;and <b>%i</b> very seriously<br>";
 			sOrbDestroyed   = "There were <b>%i</b> Orbital Cannon destroyed.<br>";
 			sLOrbDestroyed  = "There were <b>%i</b> Light Orbital Cannon destroyed.<br>";
 		break;
@@ -237,7 +237,7 @@ bool finish_combat(s_move_data* move, int winner, char** argv) {
 	}
 	else {
 		printf(sAttackingShips);
-		
+
 		while(res->fetch_row()) {
 			printf(sHull, res->row[0], (atoi(res->row[1]) + 1), atoi(res->row[2]));
 		}
@@ -312,7 +312,7 @@ bool finish_combat(s_move_data* move, int winner, char** argv) {
 #ifndef SIMULATOR
 		if(!db.query("UPDATE planets "
 					 "SET building_10 = building_10 - %i, "
-					     "building_13 = building_13 - %i "
+					  	 "building_13 = building_13 - %i "
 					 "WHERE planet_id = %i", move->destroyed_large_orbital_defense, move->destroyed_small_orbital_defense, move->dest)) {
 
 			DEBUG_LOG("Could not update planetary data\n");
