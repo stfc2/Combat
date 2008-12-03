@@ -37,7 +37,7 @@ struct cshipclass_ptr_cmp{
 };
 
 
-// diese funktion macht bestimmte torsos unattraktiver für angriffe
+// This feature makes certain Torsos unattractive for attacks
 float add_special(int torso_id)
 {
 	switch (torso_id)
@@ -59,7 +59,7 @@ float add_special(int torso_id)
 }
 
 
-// prüft die existenz eines targets
+// Examine the existence of targets
 bool cshipclass::check_target()
 {
 	if (!this->target) return 0;
@@ -72,7 +72,7 @@ bool cshipclass::check_target()
 	return 1;
 }
 
-// sucht diesem schiff ein neues target aus der entsprechenden liste
+// Examines this ship a new target from the corresponding list
 bool cshipclass::get_target(list<cshipclass*> *ship_list)
 {
 	if (!this->ship_reference) return 0;
@@ -80,7 +80,7 @@ bool cshipclass::get_target(list<cshipclass*> *ship_list)
 	this->target = NULL;
 	double rate = 1.7976931348623158e+308;
 
-	// wir suchen das beste target aus im normalfall max 50
+	// we are looking for the best target from the normal instance max 50
 	int count=0;
 
 	if (this->party==0)
@@ -101,7 +101,7 @@ bool cshipclass::get_target(list<cshipclass*> *ship_list)
 			++dfd_ship_it;
 			if (dfd_ship_it==ship_list->end()) dfd_ship_it=ship_list->begin();
 			count++;
-			if (count>100 && this->target) 
+			if (count>100 && this->target)
 				break;
 		};
 	}
@@ -123,7 +123,7 @@ bool cshipclass::get_target(list<cshipclass*> *ship_list)
 			++atk_ship_it;
 			if (atk_ship_it==ship_list->end()) atk_ship_it=ship_list->begin();
 			count++;
-			if (count>100 && this->target) 
+			if (count>100 && this->target)
 			break;
 		};
 	}
@@ -133,16 +133,16 @@ bool cshipclass::get_target(list<cshipclass*> *ship_list)
 	return 1;
 }
 
-// feuert einen schuss auf das target ab
+// Fires a shot on the target
 bool cshipclass::shoot()
 {
 //		if (!this->target) return 0;
 //		if (!this->target->ship_reference) return 0;
 //		if (!this->ship_reference) return 0;
 
-	// hitchance = reaktion + bereitschaft + wendigkeit + sensoren
-	float hitchance = this->ship_reference->tpl.value_6	+ this->ship_reference->tpl.value_7
-						+ this->ship_reference->tpl.value_8 + this->ship_reference->tpl.value_11;
+	// hitchance = reaction + readiness + agility + sensors
+	float hitchance = this->ship_reference->tpl.value_6 + this->ship_reference->tpl.value_7
+			+ this->ship_reference->tpl.value_8 + this->ship_reference->tpl.value_11;
 	hitchance *= 0.1f;
 	if (hitchance>12)	hitchance = 12;
 	if (hitchance<1)	hitchance = 1;
@@ -151,8 +151,8 @@ bool cshipclass::shoot()
 	if (hit>hitchance) return 0;
 
 
-	// defchance = (reaktion + wendigkeit*1.5) * (tarnung_target / tarnung_attacker)
-	float defchance =	this->target->ship_reference->tpl.value_6	+ this->target->ship_reference->tpl.value_8 * 1.5f;
+	// defchance = (reaction + agility*1.5) * (cloak_target / cloak_attacker)
+	float defchance = this->target->ship_reference->tpl.value_6 + this->target->ship_reference->tpl.value_8 * 1.5f;
 	defchance *= (this->target->ship_reference->tpl.value_12==0 ? 1 : this->target->ship_reference->tpl.value_12) / (this->ship_reference->tpl.value_12==0 ? 1 : this->ship_reference->tpl.value_12);
 	defchance *= 0.1f;
 	//if (defchance>18)	defchance = 18;
@@ -161,8 +161,8 @@ bool cshipclass::shoot()
 	if (defchance<1)	defchance = 1;
 	if (rand()%120 <= defchance) return 0;
 
-	// schaden berechnen:
-	// schaden = lw + lw * experience/7500 + sw  + sw * experience/6000
+	// calculate damage:
+	// damage = lw + lw * experience/7500 + hw  + hw * experience/6000
 	float damage /*= this->ship_reference->tpl.value_1 + 
 	this->ship_reference->tpl.value_1 * ((float)this->ship_reference->experience/7500.0f) + 
 	this->ship_reference->tpl.value_2 + 
@@ -260,12 +260,12 @@ bool cshipclass::shoot()
 	{
 		damage = (phasers_dmg*0.25);
 
-#if VERBOSE >= 3		
+#if VERBOSE >= 3
 		DEBUG_LOG("Shield down: phasers damage inflicted: %.3f\n",damage);
 #endif
 
 		this->target->ship_reference->changed = true;
-		
+
 		this->target->ship_reference->hitpoints -= (int)damage;
 		if (this->target->ship_reference->hitpoints<0) this->target->ship_reference->hitpoints=0;
 	}
@@ -299,13 +299,13 @@ bool cshipclass::shoot()
 		DEBUG_LOG("Shield down: torpedoes damage inflicted: %.3f\n",damage);
 #endif
 		this->target->ship_reference->changed = true;
-		
+
 		this->target->ship_reference->hitpoints -= (int)damage;
 		if (this->target->ship_reference->hitpoints<0) this->target->ship_reference->hitpoints=0;
 	}
 	// DC ----
 	#ifdef KAZON_TORPEDO_SUICIDE
-	if (this->ship_reference->tpl.ship_torso==0 && this->ship_reference->tpl.value_1>0) // nur der kazon scout hat waffen, daher reichen diese merkmale fr eine identifikation
+	if (this->ship_reference->tpl.ship_torso==0 && this->ship_reference->tpl.value_1>0) // only the Kazon scout has weapons, therefore, use these features for an identification
 	{
 		this->target->ship_reference->changed = true;
 
@@ -313,7 +313,7 @@ bool cshipclass::shoot()
 		if (this->ship_reference->hitpoints<0) this->ship_reference->hitpoints=0;
 	}
 	#endif
-	
+
 	if (this->target->ship_reference->hitpoints<=0) return 1;
 	return 0;
 }
@@ -324,7 +324,7 @@ s_ship *create_large_orbital()
 
 	tmp->ship_id=-1;
 	tmp->fleet = NULL;
-	tmp->experience=10;	
+	tmp->experience=10;
 	tmp->hitpoints=PLANETARY_DEFENSE_DEFENSE;
 	tmp->unit_1=0;
 	tmp->unit_2=0;
@@ -355,7 +355,7 @@ s_ship *create_small_orbital()
 
 	tmp->ship_id=-2;
 	tmp->fleet = NULL;
-	tmp->experience=10;	
+	tmp->experience=10;
 	tmp->hitpoints=SPLANETARY_DEFENSE_DEFENSE;
 	tmp->unit_1=0;
 	tmp->unit_2=0;
@@ -384,13 +384,13 @@ s_ship *create_small_orbital()
 int process_combat(s_move_data* move_data)
 {
 	srand(time(NULL));
-	list<cshipclass*> global_ship_list; // diese liste wird beim kampf iteriert und enthält alle schiffe
-	list<cshipclass*> attacker_ship_list; // diese liste dient dem schnellen auffinden eines neuen targets
-	list<cshipclass*> defender_ship_list; // diese liste dient dem schnellen auffinden eines neuen targets	
+	list<cshipclass*> global_ship_list; // This list is iterated with the battle and includes all vessels
+	list<cshipclass*> attacker_ship_list; // This list is iterated with the battle and includes all vessels
+	list<cshipclass*> defender_ship_list; // This list is iterated with the battle and includes all vessels
 
 	int c=0;
 
-	// zunächst kommt die überprüfung, ob wenigstens ein schiff waffen hat (wenn nur normale scouts kämpfen, tritt dieser fall ein)
+	// First comes the check whether at least one ship has weapons (if only normal scouts has to fight, enters this case)
 	float sum_weapons=0;
 	for (c=0; c<move_data->n_atk_ships; ++c)
 		sum_weapons+=move_data->atk_ships[c].tpl.value_1+move_data->atk_ships[c].tpl.value_2;
@@ -400,14 +400,14 @@ int process_combat(s_move_data* move_data)
 	if (sum_weapons==0 && move_data->n_large_orbital_defense==0 && move_data->n_small_orbital_defense==0)
 	{
 		DEBUG_LOG("none of the ships carries a weapon, enable scout-fight-mode\n");
-		
+
 		for (c=0; c<move_data->n_atk_ships; ++c)
 			move_data->atk_ships[c].tpl.value_1=move_data->atk_ships[c].tpl.value_2=100;
 		for (c=0; c<move_data->n_dfd_ships; ++c)
 			move_data->dfd_ships[c].tpl.value_1=move_data->dfd_ships[c].tpl.value_2=100;
 	}
 
-	// angreifende schiffe in die liste
+	// attacking vessels in the list
 	for (c=0; c<move_data->n_atk_ships; ++c)
 	{
 		cshipclass *tmp=new cshipclass;
@@ -420,7 +420,7 @@ int process_combat(s_move_data* move_data)
 	}
 
 
-	// verteidigende schiffe in die liste
+	// defending ships in the list
 	for (c=0; c<move_data->n_dfd_ships; ++c)
 	{
 		cshipclass *tmp=new cshipclass;
@@ -432,7 +432,7 @@ int process_combat(s_move_data* move_data)
 		defender_ship_list.push_back(tmp);
 	}
 
-	// gr. orbitalgeschütze in die liste
+	// large  orbital in the list
 	for (c=0; c<move_data->n_large_orbital_defense; ++c)
 	{
 		cshipclass *tmp=new cshipclass;
@@ -443,9 +443,9 @@ int process_combat(s_move_data* move_data)
 		global_ship_list.push_back(tmp);
 		defender_ship_list.push_back(tmp);
 	}
-	// kl. orbitalgeschütze in die liste
+	// small orbital in the list
 	for (c=0; c<move_data->n_small_orbital_defense; ++c)
-	{	
+	{
 		cshipclass *tmp=new cshipclass;
 		tmp->ship_reference=create_small_orbital();
 		tmp->party=DEFENDER;
@@ -455,7 +455,7 @@ int process_combat(s_move_data* move_data)
 		defender_ship_list.push_back(tmp);
 	}
 
-	// alle schiffe in der global-liste nach firststrike sortieren (attacker und defender listen müssen nicht sortiert werden)
+	// all vessels in the global list after first strike sort (attacker and defender lists do not need to be sorted)
 	global_ship_list.sort(cshipclass_ptr_cmp());
 
 #if VERBOSE >= 3
@@ -474,17 +474,17 @@ int process_combat(s_move_data* move_data)
 	if (defender_count==0) return -1;
 	if (attacker_count==0) return 1;
 
-	// jetzt wird gekämpft!
+	// now is fight!
 	list<cshipclass*>::iterator it=global_ship_list.begin();
 	atk_ship_it=attacker_ship_list.begin();
 	dfd_ship_it=defender_ship_list.begin();
 
-	for(list<cshipclass*>::iterator search = global_ship_list.begin(); search != global_ship_list.end(); ++search)	
-	if ( !(*search)->get_target( &(((*search)->party==0) ? defender_ship_list : attacker_ship_list) ) ) // target suchen
+	for(list<cshipclass*>::iterator search = global_ship_list.begin(); search != global_ship_list.end(); ++search)
+	if ( !(*search)->get_target( &(((*search)->party==0) ? defender_ship_list : attacker_ship_list) ) ) // target search
 	{
 
 		DEBUG_LOG("unrecoverable error during target-selection, fight aborted\n");
-		
+
 		return 0;
 	}
 
@@ -502,10 +502,10 @@ int process_combat(s_move_data* move_data)
 			continue;
 		}
 
-		// 1.) target prüfen:
-		if (!(*it)->check_target()) // kein target?
+		// 1.) target examine:
+		if (!(*it)->check_target()) // no target?
 		{
-			if ( !(*it)->get_target( &(((*it)->party==0) ? defender_ship_list : attacker_ship_list) ) ) // target suchen
+			if ( !(*it)->get_target( &(((*it)->party==0) ? defender_ship_list : attacker_ship_list) ) ) // target search
 			{
 				DEBUG_LOG("unrecoverable error during target-selection, fight aborted\n");
 
@@ -516,8 +516,8 @@ int process_combat(s_move_data* move_data)
 #endif
 		}
 
-		// 2.) schießen:
-		if ((*it)->shoot()) // falls true, wurde das target zerstört
+		// 2.) shoot:
+		if ((*it)->shoot()) // if true, the target was destroyed
 		{
 			float div1=(*it)->ship_reference->tpl.value_1+(*it)->ship_reference->tpl.value_2;
 			float div2=(*it)->target->ship_reference->tpl.value_1+(*it)->target->ship_reference->tpl.value_2;
@@ -533,15 +533,15 @@ int process_combat(s_move_data* move_data)
 #if VERBOSE >= 3
 			num_victims++;
 #endif
-		} // end of: target wurde zerstört
+		} // end of: target was destroyed
 
-		// 2a.) wenn der schütze ein kazon torpedo war und suizid aktiv ist, müssen wir noch auf selbstmord prüfen
+		// 2a.) if the shooter was a Kazon torpedo and suicide is active, we still need to examine suicide
 		#ifdef KAZON_TORPEDO_SUICIDE
 		if ((*it)->ship_reference->hitpoints<=0)
 		{
 			if ((*it)->party==0) attacker_count--;
 			else defender_count--;
-		} // end of: schiff beging suizid
+		} // end of: ship committed suicide
 		#endif
 
 
@@ -549,25 +549,25 @@ int process_combat(s_move_data* move_data)
 		if (it==global_ship_list.end()) it=global_ship_list.begin();
 
 #if VERBOSE >= 3
-	num_shots++;
+		num_shots++;
 
-	if (get_current_time()-last_time>1.0f)
-	{
-		DEBUG_LOG("%d loops: %d shots, %d target-changes, %d+%d ships alive, %d victims\n",num_loops,num_shots,num_targetchanges, attacker_count, defender_count, num_victims);
-		last_time=get_current_time();
-		num_shots=0;
-		num_targetchanges=0;
-		num_loops=0;
-	}
+		if (get_current_time()-last_time>1.0f)
+		{
+			DEBUG_LOG("%d loops: %d shots, %d target-changes, %d+%d ships alive, %d victims\n",num_loops,num_shots,num_targetchanges, attacker_count, defender_count, num_victims);
+			last_time=get_current_time();
+			num_shots=0;
+			num_targetchanges=0;
+			num_loops=0;
+		}
 #endif
 
-	}; // ende des kampfloops
+	}; // end of the battle loops
 
 #if VERBOSE >= 3
 	DEBUG_LOG("\n");
 #endif
 
-	// der kampf ist beendet, wir zählen die toten orbitalgeschütze (--> das könnte man auch bereits beim zerstören machen!)
+	// the battle has ended, we count the dead orbital defense (-> which could also destroy already in the making!)
 
 	for(list<cshipclass*>::iterator search = defender_ship_list.begin(); search != defender_ship_list.end(); ++search)
 	{

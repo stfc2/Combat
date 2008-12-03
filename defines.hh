@@ -24,16 +24,16 @@
 #include <syslog.h>
 
 
-// ------------- Konfigurations-Makros -------------
+// ------------- Configuration Macros -------------
 
-// Diese Konstante gibt das Output-Level des Schedulers an.
-// HINWEIS: NUR BEI VERBOSE = 0 KANN DAS BINARY IM PHP-SCHEDULER BENUTZT WERDEN !
+// This constant indicates the output level to the scheduler.
+// NOTE: ONLY WITH VERBOSE = 0 THE BINARY CAN BE USED IN THE PHP SCHEDULER !
 //
-//	0 = nur Status-Ausgaben und kompaktes Kampfergebnis, für php-scheduler
-//	1 = normale Anzeige für standalone-Betrieb, detailiertere Angaben und human-readable
-//	2 = normale Anzeige mit Zeitmessungen
-//	3 = ausführliche Anzeige für standalone-Betrieb und Kampfdetails
-//  4 = zusätzlich werden noch alle Flotten/Schiffe/Templates vor dem Berechnen aufgeführt
+//	0 = only expenditures for status and compact combat result, for php schedulers
+//	1 = normal mode for standalone operation, detailed information and human-readable
+//	2 = normal display with time measurements
+//	3 = detailed display for standalone operation and fight details
+//	4 = additionally output  for fleets / ships / templates listed before calculate
 #define VERBOSE 0
 
 
@@ -42,10 +42,10 @@
 //#define SIMULATOR
 
 
-// Falls definiert, zerstören sich die Kazon Torpedos nach einigen Angriffen selbst
+// If defined, the Kazon torpedoe destroys itself after some attacks
 #define KAZON_TORPEDO_SUICIDE
 
-// ------------- Konfigurations-Makros -------------
+// ------------- Configuration Macros -------------
 
 
 #include <errno.h>
@@ -73,8 +73,8 @@
 #define map_key_exists(m, k, i) (!((i = m.find(k)) == m.end()))
 #define delete_map_key(m, k, i) if((i = m.find(k)) != m.end()) { m.erase(i); }
 
-// vorallem für floats gedacht, aber für alle Typen anwendbar
-// (im Gegensatz zu denen aus libc...)
+// especially for floats thought, but applicable to all types
+// (unlike those from libc ...)
 #define fabs(x) ((x > 0) ? x : -x)
 #define fmin(a, b) ((a > b) ? b : a)
 #define fmax(a, b) ((a > b) ? a : b)

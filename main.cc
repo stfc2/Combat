@@ -41,7 +41,7 @@ int main(int argc, char** argv) {
 
 	// Host , Datenbank, User, Password
 
-	db.init_by_str("localhost", "taku_stfc", "taku_stfc", "y7LB2bT1");
+	db.init_by_str((char*)"localhost", (char*)"taku_stfc", (char*)"taku_stfc", (char*)"y7LB2bT1");
 
 	s_move_data* move = new s_move_data;
 	memset(move, 0, sizeof(s_move_data));

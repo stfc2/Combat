@@ -89,31 +89,31 @@ struct s_fleet {
 };
 
 struct s_ship_template {
-	// einige Felder sind float, da bei späteren
-	// Multiplikationen auch rationale Zahlen vorkommen
-	// Das kostet uns zwar mit 50.000 Schiffen etwa 586 KiB,
-	// erspart der CPU jedoch eine Menge Berechnungen bei
-	// diesen 50.000 Schiffen
-	float value_1; // l.waffen
-	float value_2; // s.waffen
-	float value_3; // pl.waffen
-	short value_4; // schilde
-	short value_5; // hülle
-	float value_6; // reaktion
-	float value_7; // bereitschaft
-	float value_8; // wendigkeit
+	// Some fields are float, as in later
+	// multiplications rational numbers also occur
+	// It costs us with 50,000 ships about 586 KiB,
+	// However, the CPU saves a lot of calculations in
+	// those 50,000 ships
+	float value_1; // l.weapons
+	float value_2; // h.weapons
+	float value_3; // pl.weapons
+	short value_4; // shield
+	short value_5; // hull
+	float value_6; // reaction
+	float value_7; // readiness
+	float value_8; // agility
 	float value_10; // warp
-	short value_11; // sensoren
-	short value_12; // tarnung
+	short value_11; // sensors
+	short value_12; // cloak
 	char ship_torso;
-	char race; // wird das WIRKLICH gebraucht?
+	char race; // is REALLY needed?
 	char ship_class;
 };
 
 struct s_ship {
 	int ship_id;
 	s_fleet* fleet;
-	int user_id; // brauchen wir das wirklich?
+	int user_id; // we really need?
 	float experience;
 	float xp_gained;
 	bool changed;
@@ -132,13 +132,13 @@ struct s_ship {
 
 class cshipclass {
 	private:
-	
+
 	public:
 		s_ship* ship_reference;
 		cshipclass* target;
-		
-		bool party; // ATTACKER oder DEFENDER
-		int num_attackers; // anzahl der schiffe, die grad dieses schiff als target haben
+
+		bool party; // ATTACKER or DEFENDER
+		int num_attackers; // number of ships, the degree of this ship as a target have
 
 		bool check_target();
 		bool get_target(list<cshipclass*> *ship_list);
@@ -160,7 +160,7 @@ struct s_move_data {
 
 	int n_ship_templates;
 
-// späteres Optimieren
+// Optimize later
 //	list<cshipclass*> atk_ships_list;
 //	list<cshipclass*> dfd_ships_list;
 //	list<cshipclass*> global_ships_list

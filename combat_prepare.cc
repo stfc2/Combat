@@ -90,7 +90,7 @@ static bool prepare_ships(c_db_result* res, s_ship* cur_ship) {
 			memcpy(&cur_ship->tpl, tpl_map_it->second, sizeof(s_ship_template));
 		}
 		else {
-			// schlecht, extra query
+			// bad, extra query
 		}
 
 		++cur_ship->fleet->n_ships;
@@ -106,7 +106,6 @@ static bool prepare_ships(c_db_result* res, s_ship* cur_ship) {
 bool prepare_combat(s_move_data* move, char** argv) {
 	char* atk_fleet_ids_str = argv[1];
 	char* dfd_fleet_ids_str = argv[2];
-	char* orbital_defense = argv[3];
 
 	c_db_result* res;
 
@@ -118,12 +117,12 @@ bool prepare_combat(s_move_data* move, char** argv) {
 
 
 	// templates
-	if(!db.query(&res, "SELECT s.template_id, "
-					   "	   st.value_1, st.value_2, st.value_3, st.value_4, st.value_5, st.value_6, st.value_7, st.value_8, st.value_10, st.value_11, st.value_12, st.ship_torso, st.race, st.ship_class "
-					   "FROM (ships s) "
-					   "INNER JOIN ship_templates st ON st.id = s.template_id "
-					   "WHERE s.fleet_id IN (%s, %s) "
-					   "GROUP BY s.template_id", atk_fleet_ids_str, dfd_fleet_ids_str)) {
+	if(!db.query(&res, (char*)"SELECT s.template_id, "
+			   "       st.value_1, st.value_2, st.value_3, st.value_4, st.value_5, st.value_6, st.value_7, st.value_8, st.value_10, st.value_11, st.value_12, st.ship_torso, st.race, st.ship_class "
+			   "FROM (ships s) "
+			   "INNER JOIN ship_templates st ON st.id = s.template_id "
+			   "WHERE s.fleet_id IN (%s, %s) "
+			   "GROUP BY s.template_id", atk_fleet_ids_str, dfd_fleet_ids_str)) {
 
 		printf("0Could not query ship templates data\n");
 
@@ -162,8 +161,8 @@ bool prepare_combat(s_move_data* move, char** argv) {
 
 #if VERBOSE >= 4
 		DEBUG_LOG("%i (type:  %.0f/ %.0f values: %.0f/%.0f/%.0f/%.0f/%.0f/%.0f/%.0f/%.0f/%.1f/%.0f/%.0f)\n", cur_template_id, new_tpl->ship_torso, new_tpl->ship_class,
-					new_tpl->value_1, new_tpl->value_2, new_tpl->value_3, new_tpl->value_4, new_tpl->value_5, new_tpl->value_6, new_tpl->value_7,
-					new_tpl->value_8, new_tpl->value_10, new_tpl->value_11, new_tpl->value_12);
+			new_tpl->value_1, new_tpl->value_2, new_tpl->value_3, new_tpl->value_4, new_tpl->value_5, new_tpl->value_6, new_tpl->value_7,
+			new_tpl->value_8, new_tpl->value_10, new_tpl->value_11, new_tpl->value_12);
 #endif
 
 		ship_templates_map[cur_template_id] = new_tpl;
@@ -175,10 +174,10 @@ bool prepare_combat(s_move_data* move, char** argv) {
 
 
 	// attacker fleets
-	if(!db.query(&res, "SELECT fleet_id, n_ships, resource_1, resource_2, resource_3, resource_4, unit_1, unit_2, unit_3, unit_4, unit_5, unit_6 "
-					   "FROM ship_fleets WHERE fleet_id IN (%s)", atk_fleet_ids_str)) {
+	if(!db.query(&res, (char*)"SELECT fleet_id, n_ships, resource_1, resource_2, resource_3, resource_4, unit_1, unit_2, unit_3, unit_4, unit_5, unit_6 "
+			   "FROM ship_fleets WHERE fleet_id IN (%s)", atk_fleet_ids_str)) {
 		printf("0Could not query attacker's fleet data\n");
-		
+
 		return false;
 	}
 
@@ -186,7 +185,7 @@ bool prepare_combat(s_move_data* move, char** argv) {
 
 	if(move->n_atk_fleets == 0) {
 		printf("0No attacker fleets\n");
-		
+
 		return false;
 	}
 
@@ -197,8 +196,8 @@ bool prepare_combat(s_move_data* move, char** argv) {
 	safe_delete(res);
 
 
-	// attacker ships	
-	if(!db.query(&res, "SELECT ship_id, fleet_id, user_id, template_id, experience, hitpoints, unit_1, unit_2, unit_3, unit_4 FROM ships WHERE fleet_id IN (%s)", atk_fleet_ids_str)) {
+	// attacker ships
+	if(!db.query(&res, (char*)"SELECT ship_id, fleet_id, user_id, template_id, experience, hitpoints, unit_1, unit_2, unit_3, unit_4 FROM ships WHERE fleet_id IN (%s)", atk_fleet_ids_str)) {
 		printf("0Could not query attacker's ship data\n");
 
 		return false;
@@ -225,10 +224,10 @@ bool prepare_combat(s_move_data* move, char** argv) {
 	// defender fleets
 	fleets_map.clear();
 
-	if(!db.query(&res, "SELECT fleet_id, n_ships, resource_1, resource_2, resource_3, resource_4, unit_1, unit_2, unit_3, unit_4, unit_5, unit_6 "
-					   "FROM ship_fleets WHERE fleet_id IN (%s)", dfd_fleet_ids_str)) {
+	if(!db.query(&res, (char*)"SELECT fleet_id, n_ships, resource_1, resource_2, resource_3, resource_4, unit_1, unit_2, unit_3, unit_4, unit_5, unit_6 "
+			   "FROM ship_fleets WHERE fleet_id IN (%s)", dfd_fleet_ids_str)) {
 		printf("0Could not query defender's fleet data\n");
-		
+
 		return false;
 	}
 
@@ -243,7 +242,7 @@ bool prepare_combat(s_move_data* move, char** argv) {
 
 
 	// defender ships
-	if(!db.query(&res, "SELECT ship_id, fleet_id, user_id, template_id, experience, hitpoints, unit_1, unit_2, unit_3, unit_4 FROM ships WHERE fleet_id IN (%s)", dfd_fleet_ids_str)) {
+	if(!db.query(&res, (char*)"SELECT ship_id, fleet_id, user_id, template_id, experience, hitpoints, unit_1, unit_2, unit_3, unit_4 FROM ships WHERE fleet_id IN (%s)", dfd_fleet_ids_str)) {
 		printf("0Could not query defender's ship data\n");
 
 		return false;
@@ -259,7 +258,7 @@ bool prepare_combat(s_move_data* move, char** argv) {
 	safe_delete(res);
 	safe_delete_map_values(ship_templates_map);
 
-	move->dest = atoi(argv[3]);	
+	move->dest = atoi(argv[3]);
 	move->n_large_orbital_defense = atoi(argv[4]);
 	move->n_small_orbital_defense = atoi(argv[5]);
 
@@ -268,35 +267,35 @@ bool prepare_combat(s_move_data* move, char** argv) {
 	float bonus_attacker = 0.0, bonus_defender = 0.0;
 	float diff;
 
-	// Angreifer Bonus berechnen:
+	// Calculate attackers bonus:
 	if(move->n_atk_ships < 20000) {
 		cur_ship = move->atk_ships;
-		
+
 		for(int i = 0; i < move->n_atk_ships; ++i) {
 			++ships_by_class[(cur_ship++)->tpl.ship_class];
 		}
-		
+
 		diff = fabs((float)(ships_by_class[0] - move->n_atk_ships * OPTIMAL_0)) +
 			   fabs((float)(ships_by_class[1] - move->n_atk_ships * OPTIMAL_1)) +
 			   fabs((float)(ships_by_class[2] - move->n_atk_ships * OPTIMAL_2)) + 
 			   fabs((float)(ships_by_class[3] - move->n_atk_ships * OPTIMAL_3));
 
 		bonus_attacker = 0.25 - (0.5 / move->n_atk_ships * diff);
-		
+
 		if(bonus_attacker < 0) bonus_attacker = 0;
 	}
 
 	memset(ships_by_class, 0, (MAX_SHIP_CLASS + 1) * sizeof(int));
 
 
-	// Verteidiger Bonus berechnen:
+	// Calculate defender bonus:
 	if(move->n_dfd_ships>0 && move->n_dfd_ships < 20000) {
 		cur_ship = move->dfd_ships;
-		
+
 		for(int i = 0; i < move->n_dfd_ships; ++i) {
 			++ships_by_class[(cur_ship++)->tpl.ship_class];
 		}
-		
+
 		diff = fabs((float)(ships_by_class[0] - move->n_dfd_ships * OPTIMAL_0)) +
 			   fabs((float)(ships_by_class[1] - move->n_dfd_ships * OPTIMAL_1)) +
 			   fabs((float)(ships_by_class[2] - move->n_dfd_ships * OPTIMAL_2)) + 
@@ -310,11 +309,11 @@ bool prepare_combat(s_move_data* move, char** argv) {
 	++bonus_attacker;
 	++bonus_defender;
 
-	// Erfahrung + Erstschlag berechnen:
+	// Calculate Experience + First strike:
 
-	// Sensoren*0.5 + Reaktion*2 + Bereitschaft*3 + Wendigkeit + Tarnung d. eig. Schiffs
+	// Sensors*0.5 + Reaction*2 + Readiness*3 + Agility + Camouflage d. eig. ship
 
-	// + rand(0,5) bei att, rand(0,7) bei def	
+	// + rand(0,5) bei att, rand(0,7) bei def
 
 	float rank_bonus, new_value, firststrike;
 
@@ -323,7 +322,7 @@ bool prepare_combat(s_move_data* move, char** argv) {
 	for(int i = 0; i < move->n_atk_ships; ++i) {
 		rank_bonus = SHIP_RANK_0_BONUS;
 
-		if(cur_ship->experience < SHIP_RANK_1_LIMIT) { } // nichts tun
+		if(cur_ship->experience < SHIP_RANK_1_LIMIT) { } // do nothing
 		else if(cur_ship->experience >= SHIP_RANK_9_LIMIT) rank_bonus = SHIP_RANK_9_BONUS;
 		else if(cur_ship->experience >= SHIP_RANK_8_LIMIT) rank_bonus = SHIP_RANK_8_BONUS;
 		else if(cur_ship->experience >= SHIP_RANK_7_LIMIT) rank_bonus = SHIP_RANK_7_BONUS;
@@ -360,7 +359,7 @@ bool prepare_combat(s_move_data* move, char** argv) {
 	for(int i = 0; i < move->n_dfd_ships; ++i) {
 		rank_bonus = SHIP_RANK_0_BONUS;
 
-		if(cur_ship->experience < SHIP_RANK_1_LIMIT) { } // nichts tun
+		if(cur_ship->experience < SHIP_RANK_1_LIMIT) { } // do nothing
 		else if(cur_ship->experience >= SHIP_RANK_9_LIMIT) rank_bonus = SHIP_RANK_9_BONUS;
 		else if(cur_ship->experience >= SHIP_RANK_8_LIMIT) rank_bonus = SHIP_RANK_8_BONUS;
 		else if(cur_ship->experience >= SHIP_RANK_7_LIMIT) rank_bonus = SHIP_RANK_7_BONUS;
@@ -391,7 +390,7 @@ bool prepare_combat(s_move_data* move, char** argv) {
 
 		++cur_ship;
 	}
-	
+
 #if VERBOSE >= 1
 	DEBUG_LOG("\nn_atk: %i/%i\nn_dfd: %i/%i\norbital: %i/%i\n\n", move->n_atk_fleets, move->n_atk_ships, move->n_dfd_fleets, move->n_dfd_ships, move->n_large_orbital_defense, move->n_small_orbital_defense);
 #endif
@@ -403,7 +402,7 @@ bool prepare_combat(s_move_data* move, char** argv) {
 
 	for(int i = 0; i < move->n_atk_fleets; ++i) {
 		DEBUG_LOG("%i (n_ships: %i)\n", cur_fleet->fleet_id, cur_fleet->n_ships);
-		
+
 		++cur_fleet;
 	}
 
@@ -418,7 +417,7 @@ bool prepare_combat(s_move_data* move, char** argv) {
 				cur_ship->tpl.ship_torso, cur_ship->tpl.ship_class,
 				cur_ship->tpl.value_1, cur_ship->tpl.value_2, cur_ship->tpl.value_3, cur_ship->tpl.value_4, cur_ship->tpl.value_5,
 				cur_ship->tpl.value_6, cur_ship->tpl.value_7, cur_ship->tpl.value_8, cur_ship->tpl.value_10, cur_ship->tpl.value_11, cur_ship->tpl.value_12);
-		
+
 		++cur_ship;
 	}
 
@@ -428,7 +427,7 @@ bool prepare_combat(s_move_data* move, char** argv) {
 
 	for(int i = 0; i < move->n_dfd_fleets; ++i) {
 		DEBUG_LOG("%i (n_ships: %i)\n",cur_fleet->fleet_id, cur_fleet->n_ships);
-		
+
 		++cur_fleet;
 	}
 
@@ -443,7 +442,7 @@ bool prepare_combat(s_move_data* move, char** argv) {
 				cur_ship->tpl.ship_torso, cur_ship->tpl.ship_class,
 				cur_ship->tpl.value_1, cur_ship->tpl.value_2, cur_ship->tpl.value_3, cur_ship->tpl.value_4, cur_ship->tpl.value_5,
 				cur_ship->tpl.value_6, cur_ship->tpl.value_7, cur_ship->tpl.value_8, cur_ship->tpl.value_10, cur_ship->tpl.value_11, cur_ship->tpl.value_12);
-		
+
 		++cur_ship;
 	}
 

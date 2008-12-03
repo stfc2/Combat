@@ -37,13 +37,13 @@ extern c_db_core db;
 static map<int, float>::iterator user_map_it;
 static map<int, float> user_xp_map;
 
-// Was gemacht werden muss:
-//	- Flotten updaten (Zuladung)
+// What needs to be made:
+//	- Updating fleets (Payload)
 
 
 static void update_ships(s_ship* cur_ship, int n_ships, int* ship_counter) {
 	for(int i = 0; i < n_ships; ++i) {
-		// Im syslog traten komische Berichte auf von UPDATEs auf hitpoints = 0 WHERE ship_id = 0
+		// Reports into syslog on occurred comic UPDATEs on hitpoints = 0 WHERE ship_id = 0
 		if(cur_ship->ship_id == 0) {
 			++cur_ship;
 
@@ -65,7 +65,7 @@ static void update_ships(s_ship* cur_ship, int n_ships, int* ship_counter) {
 				}
 
 #ifndef SIMULATOR
-				if(!db.query("DELETE FROM ships WHERE ship_id = %i", cur_ship->ship_id)) {
+				if(!db.query((char*)"DELETE FROM ships WHERE ship_id = %i", cur_ship->ship_id)) {
 					DEBUG_LOG("Could not delete ship %i\n", cur_ship->ship_id);
 				}
 
@@ -79,7 +79,7 @@ static void update_ships(s_ship* cur_ship, int n_ships, int* ship_counter) {
 			else {
 
 #ifndef SIMULATOR
-				if(!db.query("UPDATE ships SET hitpoints = %i, experience = experience + %i WHERE ship_id = %i", (int)cur_ship->hitpoints, (int)cur_ship->xp_gained, cur_ship->ship_id)) {
+				if(!db.query((char*)"UPDATE ships SET hitpoints = %i, experience = experience + %i WHERE ship_id = %i", (int)cur_ship->hitpoints, (int)cur_ship->xp_gained, cur_ship->ship_id)) {
 					DEBUG_LOG("Could not update ship %i\n", cur_ship->ship_id);
 				}
 
@@ -109,10 +109,10 @@ static void update_fleets(s_fleet* cur_fleet, int n_fleets) {
 	int n_resources, n_units;
 	
 	for(int i = 0; i < n_fleets; ++i) {
-		// Flotte wurde zerstört
+		// Fleet was destroyed
 		if(cur_fleet->n_ships == 0) {
 #ifndef SIMULATOR
-			if(!db.query("DELETE FROM ship_fleets WHERE fleet_id = %i", cur_fleet->fleet_id)) {
+			if(!db.query((char*)"DELETE FROM ship_fleets WHERE fleet_id = %i", cur_fleet->fleet_id)) {
 				DEBUG_LOG("Could not delete fleet %i\n", cur_fleet->fleet_id);
 			}
 #endif
@@ -122,14 +122,14 @@ static void update_fleets(s_fleet* cur_fleet, int n_fleets) {
 			n_units = (cur_fleet->resource_4 + cur_fleet->unit_1 + cur_fleet->unit_2 + cur_fleet->unit_3 + cur_fleet->unit_4 + cur_fleet->unit_5 + cur_fleet->unit_6);
 
 			if( (n_resources > 0) || (n_units > 0) ) {
-				// Waren truncate!
+				// Truncate goods!
 			}
 			else {
-				// Wir updaten immer, da ein Kampf auch genutzt wird fur eine eventuelle Korrektur von n_ships
-				// und es nicht so viele Flotten bei einem Kampf gibt
+				// We always update, since a fight is also used for a possible correction of n_ships
+				// and not so many fleets are in a battle
 
 #ifndef SIMULATOR
-				if(!db.query("UPDATE ship_fleets SET n_ships = %i WHERE fleet_id = %i", cur_fleet->n_ships, cur_fleet->fleet_id)) {
+				if(!db.query((char*)"UPDATE ship_fleets SET n_ships = %i WHERE fleet_id = %i", cur_fleet->n_ships, cur_fleet->fleet_id)) {
 					DEBUG_LOG("Could not update fleet %i\n", cur_fleet->fleet_id);
 				}
 #endif
@@ -142,12 +142,12 @@ static void update_fleets(s_fleet* cur_fleet, int n_fleets) {
 bool finish_combat(s_move_data* move, int winner, char** argv) {
 #if VERBOSE >= 1
 #else
-	// Ausgabeformat fur PHP-Interface in Zeilen:
-	// 1: Status (erstes Zeichen 1 oder 0, danach optional Fehlermeldung)
-	// 2: Gewinner (0 Angreifer, 1 Verteidiger)
-	// 3: Vernichtete grobe orbitale Geschutze
-	// 4: Vernichtete kleine orbitale Geschutze
-	// 5: Result line (geez, wer hat diesen Schrott verbrochen)
+	// Output format for PHP interface in lines:
+	// 1: Status (first character 1 or 0, thereafter optionally error message)
+	// 2: Winner (0 attacker, 1 Defender)
+	// 3: Large orbital defense destroyed
+	// 4: Small orbital defense destroyed
+	// 5: Result line (geez, who has scrap this iron committed a crime)
 	printf("1OK\n");
 
 	if(winner == -1) printf("0\n");
@@ -164,7 +164,7 @@ bool finish_combat(s_move_data* move, int winner, char** argv) {
 	int lang = LANG_ENG;
 	const char *sAttackingShips,*sHull,*sDefendingShips,*sOrbital,*sLightOrbital,
 		 *sAttackerWon,*sDefenderWon,*sAttackDestroy1,*sAttackDestroy2,*sOrbDestroyed,*sLOrbDestroyed;
-	if(!db.query(&res, "SELECT language FROM user WHERE user_id = %i", move->user_id))
+	if(!db.query(&res, (char*)"SELECT language FROM user WHERE user_id = %i", move->user_id))
 	{
 		DEBUG_LOG("Could not query user %i language\n",move->user_id);
 	}
@@ -227,7 +227,7 @@ bool finish_combat(s_move_data* move, int winner, char** argv) {
 	}
 	/* */
 
-	if(!db.query(&res, "SELECT st.name, st.ship_torso, COUNT(s.ship_id) AS n_ships \
+	if(!db.query(&res, (char*)"SELECT st.name, st.ship_torso, COUNT(s.ship_id) AS n_ships \
 						FROM (ship_templates st) \
 						INNER JOIN ships s ON s.template_id = st.id \
 						WHERE s.fleet_id IN (%s) \
@@ -245,7 +245,7 @@ bool finish_combat(s_move_data* move, int winner, char** argv) {
 
 	safe_delete(res);
 
-	if(!db.query(&res, "SELECT st.name, st.ship_torso, COUNT(s.ship_id) AS n_ships \
+	if(!db.query(&res, (char*)"SELECT st.name, st.ship_torso, COUNT(s.ship_id) AS n_ships \
 						FROM (ship_templates st) \
 						INNER JOIN ships s ON s.template_id = st.id \
 						WHERE s.fleet_id IN (%s) \
@@ -310,7 +310,7 @@ bool finish_combat(s_move_data* move, int winner, char** argv) {
 
 	if( (move->destroyed_large_orbital_defense > 0) || (move->destroyed_small_orbital_defense > 0) ) {
 #ifndef SIMULATOR
-		if(!db.query("UPDATE planets "
+		if(!db.query((char*)"UPDATE planets "
 					 "SET building_10 = building_10 - %i, "
 					  	 "building_13 = building_13 - %i "
 					 "WHERE planet_id = %i", move->destroyed_large_orbital_defense, move->destroyed_small_orbital_defense, move->dest)) {
@@ -330,7 +330,7 @@ bool finish_combat(s_move_data* move, int winner, char** argv) {
 
 	for(user_map_it = user_xp_map.begin(); user_map_it != user_xp_map.end(); ++user_map_it) {
 #ifndef SIMULATOR
-		if(!db.query("UPDATE user SET user_honor = user_honor + %i WHERE user_id = %i", ((int)user_map_it->second / 10), user_map_it->first)) {
+		if(!db.query((char*)"UPDATE user SET user_honor = user_honor + %i WHERE user_id = %i", ((int)user_map_it->second / 10), user_map_it->first)) {
 			DEBUG_LOG("Could not update user honor data\n");
 		}
 #endif
