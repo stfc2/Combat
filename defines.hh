@@ -37,8 +37,8 @@
 #define VERBOSE 0
 
 
-// Diese Konstante setzt den Scheduler in den Simulationsmodus, in
-// dem er KEINE ÄNDERUNGEN SPEICHERT.
+// This constant sets the scheduler in simulation mode, in
+// which he NO CHANGES STORED.
 //#define SIMULATOR
 
 
