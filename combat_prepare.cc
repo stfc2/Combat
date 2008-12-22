@@ -101,6 +101,7 @@ static bool prepare_ships(c_db_result* res, s_ship* cur_ship) {
 
 		++cur_ship;
 	}
+	return true;
 }
 
 bool prepare_combat(s_move_data* move, char** argv) {
@@ -111,8 +112,9 @@ bool prepare_combat(s_move_data* move, char** argv) {
 
 	s_ship_template* new_tpl;
 	int cur_template_id;
-
+#if VERBOSE >= 4
 	s_fleet* cur_fleet;
+#endif
 	s_ship* cur_ship;
 
 
@@ -160,7 +162,7 @@ bool prepare_combat(s_move_data* move, char** argv) {
 		new_tpl->ship_class = atoi(res->row[14]);
 
 #if VERBOSE >= 4
-		DEBUG_LOG("%i (type:  %.0f/ %.0f values: %.0f/%.0f/%.0f/%.0f/%.0f/%.0f/%.0f/%.0f/%.1f/%.0f/%.0f)\n", cur_template_id, new_tpl->ship_torso, new_tpl->ship_class,
+		DEBUG_LOG("%i (type:  %i/%i values: %.0f/%.0f/%.0f/%i/%i/%.0f/%.0f/%.0f/%.1f/%i/%i)\n", cur_template_id, new_tpl->ship_torso, new_tpl->ship_class,
 			new_tpl->value_1, new_tpl->value_2, new_tpl->value_3, new_tpl->value_4, new_tpl->value_5, new_tpl->value_6, new_tpl->value_7,
 			new_tpl->value_8, new_tpl->value_10, new_tpl->value_11, new_tpl->value_12);
 #endif
@@ -252,7 +254,12 @@ bool prepare_combat(s_move_data* move, char** argv) {
 
 	if(move->n_dfd_ships != 0) {
 		move->dfd_ships = new s_ship[move->n_dfd_ships];
-		prepare_ships(res, move->dfd_ships);
+		// 22/12/08 - AC: Check error reporting!
+		if(!prepare_ships(res, move->dfd_ships))
+		{
+			safe_delete_array(move->dfd_ships);
+			move->n_dfd_ships = 0;
+		}
 	}
 
 	safe_delete(res);
@@ -315,7 +322,7 @@ bool prepare_combat(s_move_data* move, char** argv) {
 
 	// + rand(0,5) bei att, rand(0,7) bei def
 
-	float rank_bonus, new_value, firststrike;
+	float rank_bonus, firststrike;
 
 	cur_ship = move->atk_ships;
 
@@ -411,7 +418,7 @@ bool prepare_combat(s_move_data* move, char** argv) {
 	cur_ship = move->atk_ships;
 
 	for(int i = 0; i < move->n_atk_ships; ++i) {
-		DEBUG_LOG("%i (fleet: %i xp: %i hp: %.0f units: %i/%i/%i/%i type: %.0f/%.0f values: %.0f/%.0f/%.0f/%.0f/%.0f/%.0f/%.0f/%.0f/%.1f/%.0f/%.0f)\n", 
+		DEBUG_LOG("%i (fleet: %i xp: %i hp: %.0f units: %i/%i/%i/%i type: %i/%i values: %.0f/%.0f/%.0f/%i/%i/%.0f/%.0f/%.0f/%.1f/%i/%i)\n", 
 				cur_ship->ship_id, cur_ship->fleet->fleet_id, cur_ship->experience, cur_ship->hitpoints,
 				cur_ship->unit_1, cur_ship->unit_2, cur_ship->unit_3, cur_ship->unit_4,
 				cur_ship->tpl.ship_torso, cur_ship->tpl.ship_class,
@@ -436,7 +443,7 @@ bool prepare_combat(s_move_data* move, char** argv) {
 	cur_ship = move->dfd_ships;
 
 	for(int i = 0; i < move->n_dfd_ships; ++i) {
-		DEBUG_LOG("%i (fleet: %i xp: %i hp: %.0f units: %i/%i/%i/%i type: %.0f/%.0f values: %.0f/%.0f/%.0f/%.0f/%.0f/%.0f/%.0f/%.0f/%.1f/%.0f/%.0f)\n", 
+		DEBUG_LOG("%i (fleet: %i xp: %i hp: %.0f units: %i/%i/%i/%i type: %i/%i values: %.0f/%.0f/%.0f/%i/%i/%.0f/%.0f/%.0f/%.1f/%i/%i)\n", 
 				cur_ship->ship_id, cur_ship->fleet->fleet_id, cur_ship->experience, cur_ship->hitpoints,
 				cur_ship->unit_1, cur_ship->unit_2, cur_ship->unit_3, cur_ship->unit_4,
 				cur_ship->tpl.ship_torso, cur_ship->tpl.ship_class,
