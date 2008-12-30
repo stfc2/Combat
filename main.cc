@@ -26,22 +26,22 @@
 c_db_core db;
 
 
-// moves_sched [atk_fleet_ids_str] [dfd_fleet_ids_str] [dest] [large_orbital] [small_orbital]
+// moves_sched [atk_fleet_ids_str] [dfd_fleet_ids_str] [dest] [large_orbital] [small_orbital] [database] [user] [password]
 
 int main(int argc, char** argv) {
 
 	openlog ("combat-bin", LOG_PID | LOG_NDELAY, LOG_LOCAL1);
 
-	if(argc != 6) {
+	if(argc != 9) {
 		printf("0Wrong Parameter Count\n");
 		DEBUG_LOG("0Wrong Parameter Count\n");	
 		closelog();
 		return 0;
 	}
 
-	// Host , Datenbank, User, Password
+	// Host , Database, User, Password
 
-	db.init_by_str((char*)"localhost", (char*)"taku_stfc", (char*)"taku_stfc", (char*)"y7LB2bT1");
+	db.init_by_str((char*)"localhost", argv[6], argv[7], argv[8]);
 
 	s_move_data* move = new s_move_data;
 	memset(move, 0, sizeof(s_move_data));
