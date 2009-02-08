@@ -274,6 +274,8 @@ bool prepare_combat(s_move_data* move, char** argv) {
 	float bonus_attacker = 0.0, bonus_defender = 0.0;
 	float diff;
 
+	memset(ships_by_class, 0, (MAX_SHIP_CLASS + 1) * sizeof(int));
+	
 	// Calculate attackers bonus:
 	if(move->n_atk_ships < 20000) {
 		cur_ship = move->atk_ships;
@@ -418,7 +420,7 @@ bool prepare_combat(s_move_data* move, char** argv) {
 	cur_ship = move->atk_ships;
 
 	for(int i = 0; i < move->n_atk_ships; ++i) {
-		DEBUG_LOG("%i (fleet: %i xp: %i hp: %.0f units: %i/%i/%i/%i type: %i/%i values: %.0f/%.0f/%.0f/%i/%i/%.0f/%.0f/%.0f/%.1f/%i/%i)\n", 
+		DEBUG_LOG("%i (fleet: %i xp: %.0f hp: %.0f units: %i/%i/%i/%i type: %i/%i values: %.0f/%.0f/%.0f/%i/%i/%.0f/%.0f/%.0f/%.1f/%i/%i)\n", 
 				cur_ship->ship_id, cur_ship->fleet->fleet_id, cur_ship->experience, cur_ship->hitpoints,
 				cur_ship->unit_1, cur_ship->unit_2, cur_ship->unit_3, cur_ship->unit_4,
 				cur_ship->tpl.ship_torso, cur_ship->tpl.ship_class,
@@ -443,7 +445,7 @@ bool prepare_combat(s_move_data* move, char** argv) {
 	cur_ship = move->dfd_ships;
 
 	for(int i = 0; i < move->n_dfd_ships; ++i) {
-		DEBUG_LOG("%i (fleet: %i xp: %i hp: %.0f units: %i/%i/%i/%i type: %i/%i values: %.0f/%.0f/%.0f/%i/%i/%.0f/%.0f/%.0f/%.1f/%i/%i)\n", 
+		DEBUG_LOG("%i (fleet: %i xp: %.0f hp: %.0f units: %i/%i/%i/%i type: %i/%i values: %.0f/%.0f/%.0f/%i/%i/%.0f/%.0f/%.0f/%.1f/%i/%i)\n", 
 				cur_ship->ship_id, cur_ship->fleet->fleet_id, cur_ship->experience, cur_ship->hitpoints,
 				cur_ship->unit_1, cur_ship->unit_2, cur_ship->unit_3, cur_ship->unit_4,
 				cur_ship->tpl.ship_torso, cur_ship->tpl.ship_class,
