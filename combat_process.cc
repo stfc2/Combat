@@ -83,7 +83,7 @@ bool cshipclass::get_target(list<cshipclass*> *ship_list)
 	// we are looking for the best target from the normal instance max 50
 	int count=0;
 
-	if (this->party==0)
+	if (this->party==ATTACKER)
 	{
 		while(1)
 		{
@@ -124,7 +124,7 @@ bool cshipclass::get_target(list<cshipclass*> *ship_list)
 			if (atk_ship_it==ship_list->end()) atk_ship_it=ship_list->begin();
 			count++;
 			if (count>100 && this->target)
-			break;
+				break;
 		};
 	}
 
@@ -229,7 +229,7 @@ bool cshipclass::shoot()
 	}
 	*/
 	// DC ---- new dmg code
-#if VERBOSE >= 3
+#if VERBOSE >= 5
 	DEBUG_LOG("\nThis is the turn of the: %s\n",(this->party==ATTACKER)?"ATTACKER":"DEFENDER");
 #endif
 
@@ -238,7 +238,7 @@ bool cshipclass::shoot()
 	{
 		damage = (phasers_dmg*1.15);
 
-#if VERBOSE >= 3
+#if VERBOSE >= 5
 		DEBUG_LOG("Shield up: phasers damage inflicted: %.3f\n",damage);
 #endif
 
@@ -260,7 +260,7 @@ bool cshipclass::shoot()
 	{
 		damage = (phasers_dmg*0.25);
 
-#if VERBOSE >= 3
+#if VERBOSE >= 5
 		DEBUG_LOG("Shield down: phasers damage inflicted: %.3f\n",damage);
 #endif
 
@@ -274,7 +274,7 @@ bool cshipclass::shoot()
 	{
 		damage = (torpedoes_dmg*0.25);
 
-#if VERBOSE >= 3
+#if VERBOSE >= 5
 		DEBUG_LOG("Shield up: torpedoes damage inflicted: %.3f\n",damage);
 #endif
 		if (damage > this->target->ship_reference->shields)
@@ -295,7 +295,7 @@ bool cshipclass::shoot()
 	{
 		damage = (torpedoes_dmg*1.15);
 
-#if VERBOSE >= 3
+#if VERBOSE >= 5
 		DEBUG_LOG("Shield down: torpedoes damage inflicted: %.3f\n",damage);
 #endif
 		this->target->ship_reference->changed = true;
@@ -480,7 +480,7 @@ int process_combat(s_move_data* move_data)
 	dfd_ship_it=defender_ship_list.begin();
 
 	for(list<cshipclass*>::iterator search = global_ship_list.begin(); search != global_ship_list.end(); ++search)
-	if ( !(*search)->get_target( &(((*search)->party==0) ? defender_ship_list : attacker_ship_list) ) ) // target search
+	if ( !(*search)->get_target( &(((*search)->party==ATTACKER) ? defender_ship_list : attacker_ship_list) ) ) // target search
 	{
 
 		DEBUG_LOG("unrecoverable error during target-selection, fight aborted\n");
@@ -505,7 +505,7 @@ int process_combat(s_move_data* move_data)
 		// 1.) target examine:
 		if (!(*it)->check_target()) // no target?
 		{
-			if ( !(*it)->get_target( &(((*it)->party==0) ? defender_ship_list : attacker_ship_list) ) ) // target search
+			if ( !(*it)->get_target( &(((*it)->party==ATTACKER) ? defender_ship_list : attacker_ship_list) ) ) // target search
 			{
 				DEBUG_LOG("unrecoverable error during target-selection, fight aborted\n");
 
@@ -526,7 +526,7 @@ int process_combat(s_move_data* move_data)
 
 			(*it)->ship_reference->changed = true;
 
-			if ((*it)->target->party==0) attacker_count--;
+			if ((*it)->target->party==ATTACKER) attacker_count--;
 			else defender_count--;
 			(*it)->target->num_attackers--;
 			(*it)->target=NULL;
