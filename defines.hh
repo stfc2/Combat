@@ -22,6 +22,7 @@
 #ifndef __DEFINES_H__
 #define __DEFINES_H__
 #include <syslog.h>
+#include <time.h>
 
 
 // ------------- Configuration Macros -------------
