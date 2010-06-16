@@ -44,7 +44,7 @@
 
 
 // If defined, the Kazon torpedoe destroys itself after some attacks
-#define KAZON_TORPEDO_SUICIDE
+//#define KAZON_TORPEDO_SUICIDE
 
 // ------------- Configuration Macros -------------
 

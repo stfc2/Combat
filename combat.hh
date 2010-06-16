@@ -125,6 +125,8 @@ struct s_ship {
 	short unit_4;
 	float firststrike;
 	float shields;
+	short torp;
+	short rof;
 	s_ship_template tpl;
 };
 
