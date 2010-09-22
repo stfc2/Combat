@@ -1,10 +1,10 @@
-/*    
+/*
 	This file is part of STFC.
 	Copyright 2006-2007 by Michael Krauss (info@stfc2.de) and Tobias Gafner
-		
+
 	STFC is based on STGC,
 	Copyright 2003-2007 by Florian Brede (florian_brede@hotmail.com) and Philipp Schmidt
-	
+
     STFC is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation; either version 3 of the License, or
@@ -29,12 +29,12 @@
 #define ATTACKER 0
 #define DEFENDER 1
 
-#define SPLANETARY_DEFENSE_ATTACK 350
-#define SPLANETARY_DEFENSE_ATTACK2 0
-#define SPLANETARY_DEFENSE_DEFENSE 1000
-#define PLANETARY_DEFENSE_ATTACK 100
-#define PLANETARY_DEFENSE_ATTACK2 400
-#define PLANETARY_DEFENSE_DEFENSE 2500
+#define SPLANETARY_DEFENSE_ATTACK 400
+#define SPLANETARY_DEFENSE_ATTACK2 400
+#define SPLANETARY_DEFENSE_DEFENSE 6000
+#define PLANETARY_DEFENSE_ATTACK 850
+#define PLANETARY_DEFENSE_ATTACK2 850
+#define PLANETARY_DEFENSE_DEFENSE 6000
 
 #define SHIP_TORSO_TRANSPORTER 1
 
@@ -116,7 +116,11 @@ struct s_ship {
 	int user_id; // we really need?
 	float experience;
 	float xp_gained;
-	bool changed;
+	bool knockout; // ship is not active
+	bool changed; // ship data are changed
+	bool fleed; // ship has fleed the fight
+	bool surrendered; // ship has surrendered
+	bool captured; // ship has been captured
 	float hitpoints;
 	float previous_hitpoints;
 	short unit_1;
@@ -143,8 +147,10 @@ class cshipclass {
 		int num_attackers; // number of ships, the degree of this ship as a target have
 
 		bool check_target();
+		bool check_systems();
 		bool get_target(list<cshipclass*> *ship_list);
-		bool shoot();
+		bool primary_shoot();
+		bool secondary_shoot();
 };
 
 struct s_move_data {

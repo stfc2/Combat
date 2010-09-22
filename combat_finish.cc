@@ -54,7 +54,7 @@ static void update_ships(s_ship* cur_ship, int n_ships, int* ship_counter) {
 
 		if(cur_ship->changed == true) {
 
-			if(cur_ship->hitpoints < 1.0) {
+			if(cur_ship->knockout) {
 				if(cur_ship->xp_gained > 0.0) {
 					if(map_key_exists(user_xp_map, cur_ship->user_id, user_map_it)) {
 						user_map_it->second += cur_ship->xp_gained;
@@ -63,31 +63,31 @@ static void update_ships(s_ship* cur_ship, int n_ships, int* ship_counter) {
 						user_xp_map[cur_ship->user_id] = cur_ship->xp_gained;
 					}
 				}
+				if(cur_ship->hitpoints < 1.0) {
+					if(!db.query((char*)"DELETE FROM ships WHERE ship_id = %i", cur_ship->ship_id)) {
+						DEBUG_LOG("Could not delete ship %i\n", cur_ship->ship_id);
+					}
+#if VERBOSE >= 2
+					DEBUG_LOG("DELETE FROM ships WHERE ship_id = %i", cur_ship->ship_id);
+#endif
 
-#ifndef SIMULATOR
-				if(!db.query((char*)"DELETE FROM ships WHERE ship_id = %i", cur_ship->ship_id)) {
-					DEBUG_LOG("Could not delete ship %i\n", cur_ship->ship_id);
+					--cur_ship->fleet->n_ships;
+					if(cur_ship->tpl.ship_torso == SHIP_TORSO_TRANSPORTER) --cur_ship->fleet->n_transporter;
+				}
+				else {
+					if(!db.query((char*)"UPDATE ships SET hitpoints = %i, experience = experience + %i, torp = %i WHERE ship_id = %i", (int)cur_ship->hitpoints, (int)cur_ship->xp_gained, (int)cur_ship->torp, cur_ship->ship_id)) {
+						DEBUG_LOG("Could not update ship %i\n", cur_ship->ship_id);
+					}
 				}
 
-#if VERBOSE >= 2
-				DEBUG_LOG("DELETE FROM ships WHERE ship_id = %i", cur_ship->ship_id);
-#endif
-#endif
-
-				--cur_ship->fleet->n_ships;
-
-				if(cur_ship->tpl.ship_torso == SHIP_TORSO_TRANSPORTER) --cur_ship->fleet->n_transporter;
-			} // end-if-hitpoints
+			} // end-knockout
 			else {
-
-#ifndef SIMULATOR
-				if(!db.query((char*)"UPDATE ships SET hitpoints = %i, experience = experience + %i, torp = %i WHERE ship_id = %i", (int)cur_ship->hitpoints, (int)cur_ship->xp_gained, cur_ship->torp, cur_ship->ship_id)) {
+				if(!db.query((char*)"UPDATE ships SET hitpoints = %i, experience = experience + %i, torp = %i WHERE ship_id = %i", (int)cur_ship->hitpoints, (int)cur_ship->xp_gained, (int)cur_ship->torp, cur_ship->ship_id)) {
 					DEBUG_LOG("Could not update ship %i\n", cur_ship->ship_id);
 				}
 
 #if VERBOSE >= 2
-				DEBUG_LOG("UPDATE ships SET hitpoints = %i, experience = experience + %i, torp = %i WHERE ship_id = %i", (int)cur_ship->hitpoints, (int)cur_ship->xp_gained, cur_ship->torp, cur_ship->ship_id);
-#endif
+				DEBUG_LOG("UPDATE ships SET hitpoints = %i, experience = experience + %i, torp = %i WHERE ship_id = %i", (int)cur_ship->hitpoints, (int)cur_ship->xp_gained, (int)cur_ship->torp, cur_ship->ship_id);
 #endif
 
 				if(cur_ship->xp_gained > 0.0) {
@@ -100,7 +100,7 @@ static void update_ships(s_ship* cur_ship, int n_ships, int* ship_counter) {
 				}
 				
 				++(*ship_counter);
-			} // end-else-hitpoints
+			} //
 
 		} // end-if-changed
 
@@ -167,7 +167,7 @@ bool finish_combat(s_move_data* move, int winner, char** argv) {
 	 **/
 	int lang = LANG_ENG;
 	const char *sAttackingShips,*sHull,*sDefendingShips,*sOrbital,*sLightOrbital,
-		 *sAttackerWon,*sDefenderWon,*sAttackDestroy1,*sAttackDestroy2,*sOrbDestroyed,*sLOrbDestroyed;
+		 *sAttackerWon,*sDefenderWon,*sAttackDestroy1,*sAttackDestroy2,*sDefendFled,*sOrbDestroyed,*sLOrbDestroyed;
 	if(!db.query(&res, (char*)"SELECT language FROM user WHERE user_id = %i", move->user_id))
 	{
 		DEBUG_LOG("Could not query user %i language\n",move->user_id);
@@ -197,6 +197,7 @@ bool finish_combat(s_move_data* move, int winner, char** argv) {
 			sDefenderWon    = "<br>The defending ships have won the fight.<br><br>";
 			sAttackDestroy1 = "From the victorious ships became...<br>... <b>%i</b> destroyed<br>... <b>%i</b> damaged<br>";
 			sAttackDestroy2 = "&nbsp;&nbsp;&nbsp;&nbsp;of which <b>%i</b> seriously<br>&nbsp;&nbsp;&nbsp;&nbsp;and <b>%i</b> very seriously<br>";
+			sDefendFled     = "Delle navi sconfitte <b>%i</b> hanno tentato la fuga.<br>";
 			sOrbDestroyed   = "There were <b>%i</b> Orbital Cannon destroyed.<br>";
 			sLOrbDestroyed  = "There were <b>%i</b> Light Orbital Cannon destroyed.<br>";
 		break;
@@ -211,6 +212,7 @@ bool finish_combat(s_move_data* move, int winner, char** argv) {
 			sDefenderWon    = "<br>Die verteidigenden Schiffe haben den Kampf gewonnen.<br><br>";
 			sAttackDestroy1 = "Von den siegreichen Schiffen wurden...<br>... <b>%i</b> zerst&ouml;rt<br>... <b>%i</b> besch&auml;digt<br>";
 			sAttackDestroy2 = "&nbsp;&nbsp;&nbsp;&nbsp;davon <b>%i</b> stark<br>&nbsp;&nbsp;&nbsp;&nbsp;and <b>%i</b> sehr stark<br>";
+			sDefendFled     = "Delle navi sconfitte <b>%i</b> hanno tentato la fuga.<br>";
 			sOrbDestroyed   = "Es wurden <b>%i</b> Orbitalgesch&uuml;tze zerst&ouml;rt.<br>";
 			sLOrbDestroyed  = "Es wurden <b>%i</b> kleine Orbitalgesch&uuml;tze zerst&ouml;rt.<br>";
 		break;
@@ -225,6 +227,7 @@ bool finish_combat(s_move_data* move, int winner, char** argv) {
 			sDefenderWon    = "<br>Le navi in difesa hanno vinto la battaglia.<br><br>";
 			sAttackDestroy1 = "Delle navi vittoriose ci sono state...<br>... <b>%i</b> distrutte<br>... <b>%i</b> danneggiate<br>";
 			sAttackDestroy2 = "&nbsp;&nbsp;&nbsp;&nbsp;di cui <b>%i</b> seriamente<br>&nbsp;&nbsp;&nbsp;&nbsp;e <b>%i</b> molto seriamente<br>";
+			sDefendFled     = "Delle navi sconfitte <b>%i</b> sono fuggite dal combattimento.<br>";
 			sOrbDestroyed   = "Sono stati distrutti <b>%i</b> Cannoni Orbitali.<br>";
 			sLOrbDestroyed  = "Sono stati distrutti <b>%i</b> Cannoni Orbitali Leggeri.<br>";
 		break;
@@ -269,19 +272,25 @@ bool finish_combat(s_move_data* move, int winner, char** argv) {
 	}
 
 	s_ship* cur_winner_ship;
+	s_ship* cur_loser_ship;
 	int n_winner_ships;
+	int n_loser_ships;
 
 	if(winner == -1) {
 		printf(sAttackerWon);
 
 		cur_winner_ship = move->atk_ships;
 		n_winner_ships = move->n_atk_ships;
+		cur_loser_ship = move->dfd_ships;
+		n_loser_ships = move->n_dfd_ships;
 	}
 	else {
 		printf(sDefenderWon);
 
 		cur_winner_ship = move->dfd_ships;
 		n_winner_ships = move->n_dfd_ships;
+		cur_loser_ship = move->atk_ships;
+		n_loser_ships = move->n_atk_ships;
 	}
 
 	int n_winner_destroyed = 0, n_winner_light_damage = 0, n_winner_heavy_damage = 0, n_winner_very_heavy_damage = 0;
@@ -301,8 +310,16 @@ bool finish_combat(s_move_data* move, int winner, char** argv) {
 		}
 	}
 
+	int n_fled_ship = 0;
+
+	for(int i = 0; i < n_loser_ships; i++){
+		if(cur_loser_ship[i].fleed) n_fled_ship++;
+	}
+
 	printf(sAttackDestroy1, n_winner_destroyed, (n_winner_light_damage + n_winner_heavy_damage + n_winner_very_heavy_damage));
 	printf(sAttackDestroy2, n_winner_heavy_damage, n_winner_very_heavy_damage);
+
+	if(n_fled_ship>0) printf(sDefendFled, n_fled_ship);
 
 	if(move->destroyed_large_orbital_defense) printf(sOrbDestroyed, move->destroyed_large_orbital_defense);
 	if(move->destroyed_small_orbital_defense) printf(sLOrbDestroyed, move->destroyed_small_orbital_defense);
