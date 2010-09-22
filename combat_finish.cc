@@ -1,10 +1,10 @@
-/*    
+/*
 	This file is part of STFC.
 	Copyright 2006-2007 by Michael Krauss (info@stfc2.de) and Tobias Gafner
-		
+
 	STFC is based on STGC,
 	Copyright 2003-2007 by Florian Brede (florian_brede@hotmail.com) and Philipp Schmidt
-	
+
     STFC is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation; either version 3 of the License, or
@@ -101,9 +101,9 @@ static void update_ships(s_ship* cur_ship, int n_ships, int* ship_counter) {
 				
 				++(*ship_counter);
 			} // end-else-hitpoints
-			
+
 		} // end-if-changed
-		
+
 		++cur_ship;
 		
 	} // end-for
@@ -155,7 +155,7 @@ bool finish_combat(s_move_data* move, int winner, char** argv) {
 	printf("1OK\n");
 
 	if(winner == -1) printf("0\n");
-	else printf("1\n");	
+	else printf("1\n");
 
 	printf("%i\n", move->n_large_orbital_defense);
 	printf("%i\n", move->n_small_orbital_defense);
@@ -270,7 +270,7 @@ bool finish_combat(s_move_data* move, int winner, char** argv) {
 
 	s_ship* cur_winner_ship;
 	int n_winner_ships;
-	
+
 	if(winner == -1) {
 		printf(sAttackerWon);
 
@@ -305,7 +305,7 @@ bool finish_combat(s_move_data* move, int winner, char** argv) {
 	printf(sAttackDestroy2, n_winner_heavy_damage, n_winner_very_heavy_damage);
 
 	if(move->destroyed_large_orbital_defense) printf(sOrbDestroyed, move->destroyed_large_orbital_defense);
-	if(move->destroyed_small_orbital_defense) printf(sLOrbDestroyed, move->destroyed_small_orbital_defense);	
+	if(move->destroyed_small_orbital_defense) printf(sLOrbDestroyed, move->destroyed_small_orbital_defense);
 
 	printf("<br>\n");
 
