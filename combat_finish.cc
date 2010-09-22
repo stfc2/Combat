@@ -69,7 +69,9 @@ static void update_ships(s_ship* cur_ship, int n_ships, int* ship_counter) {
 					DEBUG_LOG("Could not delete ship %i\n", cur_ship->ship_id);
 				}
 
+#if VERBOSE >= 2
 				DEBUG_LOG("DELETE FROM ships WHERE ship_id = %i", cur_ship->ship_id);
+#endif
 #endif
 
 				--cur_ship->fleet->n_ships;
@@ -83,7 +85,9 @@ static void update_ships(s_ship* cur_ship, int n_ships, int* ship_counter) {
 					DEBUG_LOG("Could not update ship %i\n", cur_ship->ship_id);
 				}
 
+#if VERBOSE >= 2
 				DEBUG_LOG("UPDATE ships SET hitpoints = %i, experience = experience + %i, torp = %i WHERE ship_id = %i", (int)cur_ship->hitpoints, (int)cur_ship->xp_gained, cur_ship->torp, cur_ship->ship_id);
+#endif
 #endif
 
 				if(cur_ship->xp_gained > 0.0) {
