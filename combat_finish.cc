@@ -240,7 +240,7 @@ bool finish_combat(s_move_data* move, int winner, char** argv) {
 		DEBUG_LOG("Could not query attackers template overview\n");
 	}
 	else {
-		printf(sAttackingShips);
+		printf("%s",sAttackingShips);
 
 		while(res->fetch_row()) {
 			printf(sHull, res->row[0], (atoi(res->row[1]) + 1), atoi(res->row[2]));
@@ -258,7 +258,7 @@ bool finish_combat(s_move_data* move, int winner, char** argv) {
 		DEBUG_LOG("Could not query attackers template overview\n");
 	}
 	else {
-		printf(sDefendingShips);
+		printf("%s",sDefendingShips);
 
 		if(move->n_large_orbital_defense > 0) printf(sOrbital, move->n_large_orbital_defense);
 		if(move->n_small_orbital_defense > 0) printf(sLightOrbital, move->n_small_orbital_defense);
@@ -272,13 +272,13 @@ bool finish_combat(s_move_data* move, int winner, char** argv) {
 	int n_winner_ships;
 
 	if(winner == -1) {
-		printf(sAttackerWon);
+		printf("%s",sAttackerWon);
 
 		cur_winner_ship = move->atk_ships;
 		n_winner_ships = move->n_atk_ships;
 	}
 	else {
-		printf(sDefenderWon);
+		printf("%s",sDefenderWon);
 
 		cur_winner_ship = move->dfd_ships;
 		n_winner_ships = move->n_dfd_ships;
