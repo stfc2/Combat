@@ -7,7 +7,7 @@ CC=gcc
 CXX=g++
 LINKER=g++
 COPTS=-O3 -march=k8
-LINKOPTS=-L/usr/local/mysql/lib -lmysqlclient -lz
+LINKOPTS=-L/usr/lib64/mysql -lmysqlclient -lz
 
 all: $(APP)
 
