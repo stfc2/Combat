@@ -692,7 +692,7 @@ int process_combat(s_move_data* move_data)
 
                                 }                                
                                 
-                                primary--
+                                primary--;
                             
                             }                            
 
@@ -719,7 +719,7 @@ int process_combat(s_move_data* move_data)
 
                                 }                                
                                 
-                                secondary--
+                                secondary--;
                             
                             }
                             
@@ -746,7 +746,7 @@ int process_combat(s_move_data* move_data)
                             
                             knockout=false;
 
-                            if(secondary > 0 && (*it)->target->ship_reference->shields=0)
+                            if(secondary > 0 && (*it)->target->ship_reference->shields == 0)
                             {
                                 // Target shields are down, firing secondary
                                 knockout = (*it)->secondary_shoot();
