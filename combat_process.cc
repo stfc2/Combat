@@ -322,6 +322,20 @@ bool cshipclass::primary_shoot()
 // Torpedoes Away!!!
 bool cshipclass::secondary_shoot()
 {
+    
+        if(this->ship_reference->tpl.ship_torso<4) this->ship_reference->torp = 1; // Fake torpedoes for fighter, cargoes and coloships
+
+	if (this->ship_reference->torp > 0)
+	{
+		this->ship_reference->torp--;
+		this->ship_reference->changed = true;
+	}
+	else
+	{
+                this->ship_reference->rof2 = 0;
+		return 0;
+	}
+                
 	// hitchance = reaction + readiness + agility + sensors
 	float hitchance = 0;
 
@@ -344,18 +358,6 @@ bool cshipclass::secondary_shoot()
 
 	int hit = rand()%17;
 	if (hit>hitchance) return 0;
-
-	if(this->ship_reference->tpl.ship_torso<4) this->ship_reference->torp = 1; // Fake torpedoes for fighter, cargoes and coloships
-
-	if (this->ship_reference->torp > 0)
-	{
-		this->ship_reference->torp--;
-		this->ship_reference->changed = true;
-	}
-	else
-	{
-		return 0;
-	}
 
 	// defchance = (reaction + agility*1.5) * (cloak_target / cloak_attacker)
 	float defchance = this->target->ship_reference->tpl.value_6 * 1.1 + this->target->ship_reference->tpl.value_8 * 2.4f;
