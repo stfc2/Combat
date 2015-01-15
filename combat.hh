@@ -1,10 +1,10 @@
-/*    
+/*
 	This file is part of STFC.
 	Copyright 2006-2007 by Michael Krauss (info@stfc2.de) and Tobias Gafner
-		
+
 	STFC is based on STGC,
 	Copyright 2003-2007 by Florian Brede (florian_brede@hotmail.com) and Philipp Schmidt
-	
+
     STFC is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation; either version 3 of the License, or
@@ -31,10 +31,10 @@
 
 #define SPLANETARY_DEFENSE_ATTACK 350
 #define SPLANETARY_DEFENSE_ATTACK2 0
-#define SPLANETARY_DEFENSE_DEFENSE 1000
-#define PLANETARY_DEFENSE_ATTACK 100
-#define PLANETARY_DEFENSE_ATTACK2 400
-#define PLANETARY_DEFENSE_DEFENSE 2500
+#define SPLANETARY_DEFENSE_DEFENSE 3000
+#define PLANETARY_DEFENSE_ATTACK 700
+#define PLANETARY_DEFENSE_ATTACK2 700
+#define PLANETARY_DEFENSE_DEFENSE 5000
 
 #define SHIP_TORSO_TRANSPORTER 1
 
@@ -51,6 +51,12 @@
 #define SHIP_RANK_7_LIMIT 99
 #define SHIP_RANK_8_LIMIT 100
 #define SHIP_RANK_9_LIMIT 101
+
+#define SHIP_RANK_TIER_1  120
+#define SHIP_RANK_TIER_2  140
+#define SHIP_RANK_TIER_3  160
+#define SHIP_RANK_TIER_4  180
+#define SHIP_RANK_TIER_5  199
 
 #define SHIP_RANK_0_BONUS 0
 #define SHIP_RANK_1_BONUS 0.02
@@ -70,6 +76,15 @@
 
 #define MAX_SHIP_CLASS 3
 
+
+struct template_stat {
+    int deathblows;   // # final blow delivered
+    int out;          // # knocked out
+    int damaged;      // # damaged
+    int h_damaged;    // # heavily damaged
+    int v_h_damaged;  // # very heavily damaged
+    int escaped;      // # escaped from combat
+};
 
 struct s_fleet {
 	int fleet_id;
@@ -116,7 +131,12 @@ struct s_ship {
 	int user_id; // we really need?
 	float experience;
 	float xp_gained;
-	bool changed;
+	bool knockout; // ship is not active
+	bool changed; // ship data are changed
+	bool fleed; // ship has fleed the fight
+	bool surrendered; // ship has surrendered
+	bool captured; // ship has been captured
+        int  deathblows; // # of final blows delivered by the ship in the battle
 	float hitpoints;
 	float previous_hitpoints;
 	short unit_1;
@@ -127,8 +147,12 @@ struct s_ship {
 	float shields;
 	short torp;
 	short rof;
+        short rof2;
+        char atk_lvl;
+        int ship_template_id; // template id
 	s_ship_template tpl;
 };
+
 
 #include <list>
 
@@ -143,8 +167,10 @@ class cshipclass {
 		int num_attackers; // number of ships, the degree of this ship as a target have
 
 		bool check_target();
+		bool check_systems();
 		bool get_target(list<cshipclass*> *ship_list);
-		bool shoot();
+		bool primary_shoot();
+		bool secondary_shoot();
 };
 
 struct s_move_data {
