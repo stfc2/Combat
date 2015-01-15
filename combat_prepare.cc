@@ -1,10 +1,10 @@
-/*    
+/*
 	This file is part of STFC.
 	Copyright 2006-2007 by Michael Krauss (info@stfc2.de) and Tobias Gafner
-		
+
 	STFC is based on STGC,
 	Copyright 2003-2007 by Florian Brede (florian_brede@hotmail.com) and Philipp Schmidt
-	
+
     STFC is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation; either version 3 of the License, or
@@ -34,6 +34,40 @@ static map<int, s_ship_template*> ship_templates_map;
 static map<int, s_fleet*>::iterator fleet_map_it;
 static map<int, s_fleet*> fleets_map;
 
+static char set_atk_lvl(char race) {
+    
+    char result;
+    
+    // Indicati i valori per tutte le razze giocanti, anche se potevo indicare solo
+    // le razze che richiedono il settaggio del campo a 1.
+    switch(race) {
+        case 0:         // Fed
+            result = 1;
+            break;
+        case 1:         // Romulan
+            result = 0;
+            break;
+        case 2:         // Klingon
+            result = 0;
+            break;
+        case 3:         // Cardassian
+            result = 1;
+            break;
+        case 4:         // Dominion
+            result = 0;
+            break;
+        case 9:         // Hirogeni
+            result = 1;
+            break;
+        case 11:        // Kazon
+            result = 0;
+            break;
+        default:
+            result = 0;
+    }
+    
+    return result;
+}
 
 static void prepare_fleets(c_db_result* res, s_fleet* cur_fleet) {
 	while(res->fetch_row()) {
@@ -67,7 +101,7 @@ static bool prepare_ships(c_db_result* res, s_ship* cur_ship) {
 		}
 		else {
 			printf("0Could not find fleet for ship %i in map\n", cur_ship->ship_id);
-			
+
 			return false;
 		}
 
@@ -85,7 +119,15 @@ static bool prepare_ships(c_db_result* res, s_ship* cur_ship) {
 		cur_ship->unit_4 = atoi(res->row[9]);
 		cur_ship->torp = atoi(res->row[10]);
 		cur_ship->rof = atoi(res->row[11]);
+                cur_ship->rof2 = atoi (res->row[12]);
+                cur_ship->atk_lvl = 0;
+                cur_ship->ship_template_id = atoi(res->row[3]);
 
+                cur_ship->deathblows = 0;
+		cur_ship->captured = false;
+		cur_ship->fleed = false;
+		cur_ship->knockout = false;
+		cur_ship->surrendered = false;
 		cur_ship->changed = false;
 
 		if(map_key_exists(ship_templates_map, atoi(res->row[3]), tpl_map_it)) {
@@ -201,7 +243,7 @@ bool prepare_combat(s_move_data* move, char** argv) {
 
 
 	// attacker ships
-	if(!db.query(&res, (char*)"SELECT ship_id, fleet_id, user_id, template_id, experience, hitpoints, unit_1, unit_2, unit_3, unit_4, torp, rof  FROM ships WHERE fleet_id IN (%s)", atk_fleet_ids_str)) {
+	if(!db.query(&res, (char*)"SELECT ship_id, fleet_id, user_id, template_id, experience, hitpoints, unit_1, unit_2, unit_3, unit_4, torp, rof, rof2 FROM ships WHERE fleet_id IN (%s)", atk_fleet_ids_str)) {
 		printf("0Could not query attacker's ship data\n");
 
 		return false;
@@ -246,7 +288,7 @@ bool prepare_combat(s_move_data* move, char** argv) {
 
 
 	// defender ships
-	if(!db.query(&res, (char*)"SELECT ship_id, fleet_id, user_id, template_id, experience, hitpoints, unit_1, unit_2, unit_3, unit_4, torp, rof  FROM ships WHERE fleet_id IN (%s)", dfd_fleet_ids_str)) {
+	if(!db.query(&res, (char*)"SELECT ship_id, fleet_id, user_id, template_id, experience, hitpoints, unit_1, unit_2, unit_3, unit_4, torp, rof FROM ships WHERE fleet_id IN (%s)", dfd_fleet_ids_str)) {
 		printf("0Could not query defender's ship data\n");
 
 		return false;
@@ -277,7 +319,7 @@ bool prepare_combat(s_move_data* move, char** argv) {
 	float diff;
 
 	memset(ships_by_class, 0, (MAX_SHIP_CLASS + 1) * sizeof(int));
-	
+
 	// Calculate attackers bonus:
 	if(move->n_atk_ships < 20000) {
 		cur_ship = move->atk_ships;
@@ -288,7 +330,7 @@ bool prepare_combat(s_move_data* move, char** argv) {
 
 		diff = fabs((float)(ships_by_class[0] - move->n_atk_ships * OPTIMAL_0)) +
 			   fabs((float)(ships_by_class[1] - move->n_atk_ships * OPTIMAL_1)) +
-			   fabs((float)(ships_by_class[2] - move->n_atk_ships * OPTIMAL_2)) + 
+			   fabs((float)(ships_by_class[2] - move->n_atk_ships * OPTIMAL_2)) +
 			   fabs((float)(ships_by_class[3] - move->n_atk_ships * OPTIMAL_3));
 
 		bonus_attacker = 0.25 - (0.5 / move->n_atk_ships * diff);
@@ -309,7 +351,7 @@ bool prepare_combat(s_move_data* move, char** argv) {
 
 		diff = fabs((float)(ships_by_class[0] - move->n_dfd_ships * OPTIMAL_0)) +
 			   fabs((float)(ships_by_class[1] - move->n_dfd_ships * OPTIMAL_1)) +
-			   fabs((float)(ships_by_class[2] - move->n_dfd_ships * OPTIMAL_2)) + 
+			   fabs((float)(ships_by_class[2] - move->n_dfd_ships * OPTIMAL_2)) +
 			   fabs((float)(ships_by_class[3] - move->n_dfd_ships * OPTIMAL_3));
 
 		bonus_defender = 0.25 - (0.5 / move->n_dfd_ships * diff);
@@ -344,13 +386,29 @@ bool prepare_combat(s_move_data* move, char** argv) {
 		else if(cur_ship->experience >= SHIP_RANK_2_LIMIT) rank_bonus = SHIP_RANK_2_BONUS;
 		else rank_bonus = SHIP_RANK_1_BONUS;
 
+		// Recalculate ship's statistics (base stat + modifier) + ship's experience bonus
+
 		cur_ship->tpl.value_1 *= (rank_bonus + bonus_attacker);
 		cur_ship->tpl.value_2 *= (rank_bonus + bonus_attacker);
 		cur_ship->tpl.value_3 *= (rank_bonus + bonus_attacker);
 		cur_ship->tpl.value_6 *= (rank_bonus + bonus_attacker);
 		cur_ship->tpl.value_7 *= (rank_bonus + bonus_attacker);
 		cur_ship->tpl.value_8 *= (rank_bonus + bonus_attacker);
-
+                
+                // if(cur_ship->experience >= SHIP_RANK_TIER_1) cur_ship->atk_lvl = 1;
+                
+                cur_ship->atk_lvl = set_atk_lvl(cur_ship->tpl.race);
+                
+                if(cur_ship->experience >= SHIP_RANK_TIER_1) cur_ship->rof++;                
+                
+                if(cur_ship->experience >= SHIP_RANK_TIER_2) cur_ship->rof++;
+                
+                if(cur_ship->experience >= SHIP_RANK_TIER_3) cur_ship->rof2++;
+                
+                if(cur_ship->experience >= SHIP_RANK_TIER_4) cur_ship->rof++;
+                
+                if(cur_ship->experience >= SHIP_RANK_TIER_5) cur_ship->rof2++;                
+                
 		firststrike = cur_ship->tpl.value_11 * 0.5 + cur_ship->tpl.value_6 * 2 + cur_ship->tpl.value_7 * 3 + cur_ship->tpl.value_8 + cur_ship->tpl.value_12;
 
 		if(firststrike < 1) firststrike = 1;
@@ -387,7 +445,21 @@ bool prepare_combat(s_move_data* move, char** argv) {
 		cur_ship->tpl.value_6 *= (rank_bonus + bonus_defender);
 		cur_ship->tpl.value_7 *= (rank_bonus + bonus_defender);
 		cur_ship->tpl.value_8 *= (rank_bonus + bonus_defender);
-
+                
+                // if(cur_ship->experience >= SHIP_RANK_TIER_1) cur_ship->atk_lvl = 1;
+                
+                cur_ship->atk_lvl = set_atk_lvl(cur_ship->tpl.race);
+                
+                if(cur_ship->experience >= SHIP_RANK_TIER_1) cur_ship->rof++;
+                    
+                if(cur_ship->experience >= SHIP_RANK_TIER_2) cur_ship->rof++;
+                
+                if(cur_ship->experience >= SHIP_RANK_TIER_3) cur_ship->rof2++;
+                
+                if(cur_ship->experience >= SHIP_RANK_TIER_4) cur_ship->rof++;
+                
+                if(cur_ship->experience >= SHIP_RANK_TIER_5) cur_ship->rof2++;
+                
 		firststrike = cur_ship->tpl.value_11 * 0.5 + cur_ship->tpl.value_6 * 2 + cur_ship->tpl.value_7 * 3 + cur_ship->tpl.value_8 + cur_ship->tpl.value_12;
 
 		if(firststrike < 1) firststrike = 1;
@@ -422,7 +494,7 @@ bool prepare_combat(s_move_data* move, char** argv) {
 	cur_ship = move->atk_ships;
 
 	for(int i = 0; i < move->n_atk_ships; ++i) {
-		DEBUG_LOG("%i (fleet: %i xp: %.0f hp: %.0f units: %i/%i/%i/%i type: %i/%i rof: %i torp: %i values: %.0f/%.0f/%.0f/%i/%i/%.0f/%.0f/%.0f/%.1f/%i/%i)\n", 
+		DEBUG_LOG("%i (fleet: %i xp: %.0f hp: %.0f units: %i/%i/%i/%i type: %i/%i rof: %i torp: %i values: %.0f/%.0f/%.0f/%i/%i/%.0f/%.0f/%.0f/%.1f/%i/%i)\n",
 				cur_ship->ship_id, cur_ship->fleet->fleet_id, cur_ship->experience, cur_ship->hitpoints,
 				cur_ship->unit_1, cur_ship->unit_2, cur_ship->unit_3, cur_ship->unit_4,
 				cur_ship->tpl.ship_torso, cur_ship->tpl.ship_class,
@@ -448,7 +520,7 @@ bool prepare_combat(s_move_data* move, char** argv) {
 	cur_ship = move->dfd_ships;
 
 	for(int i = 0; i < move->n_dfd_ships; ++i) {
-		DEBUG_LOG("%i (fleet: %i xp: %.0f hp: %.0f units: %i/%i/%i/%i type: %i/%i rof: %i torp: %i values: %.0f/%.0f/%.0f/%i/%i/%.0f/%.0f/%.0f/%.1f/%i/%i)\n", 
+		DEBUG_LOG("%i (fleet: %i xp: %.0f hp: %.0f units: %i/%i/%i/%i type: %i/%i rof: %i torp: %i values: %.0f/%.0f/%.0f/%i/%i/%.0f/%.0f/%.0f/%.1f/%i/%i)\n",
 				cur_ship->ship_id, cur_ship->fleet->fleet_id, cur_ship->experience, cur_ship->hitpoints,
 				cur_ship->unit_1, cur_ship->unit_2, cur_ship->unit_3, cur_ship->unit_4,
 				cur_ship->tpl.ship_torso, cur_ship->tpl.ship_class,
