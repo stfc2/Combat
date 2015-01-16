@@ -58,11 +58,11 @@ bool cshipclass::check_systems()
 	DEBUG_LOG("Entering check_systems in get_target\n");
 #endif
 
-    escape_chance = 0;
+        escape_chance = 0;
     
 	if(this->ship_reference->ship_id<0) return 0; // Planetary guns do not flee!!!
     
-    if(this->ship_reference->tpl.ship_torso > 11) return 0; // Orbital guns either!!!!
+        if(this->ship_reference->tpl.ship_torso > 11) return 0; // Orbital guns either!!!!
 
 	if(this->ship_reference->tpl.race == 2 || this->ship_reference->tpl.race == 4 || this->ship_reference->tpl.race == 8 || this->ship_reference->tpl.race == 9) return 0;
 
@@ -75,7 +75,7 @@ bool cshipclass::check_systems()
 		if(escape_chance <  1.0) escape_chance = 1.0;
 		if(escape_chance > 80.0) escape_chance = 80.0;
 		escape_roll = (this->party == ATTACKER ? rand()%100 : rand()%100);
-        damage_threshold = 15;
+                damage_threshold = 25;
 		break;
 	// Romulans
 	// Il check si basa sulla caratteristica occultamento
@@ -84,10 +84,10 @@ bool cshipclass::check_systems()
 		if(escape_chance <  1.0) escape_chance = 1.0;
 		if(escape_chance > 85.0) escape_chance = 85.0;
 		escape_roll = (this->party == ATTACKER ? rand()%100 : rand()%100);
-        damage_threshold = 20;
+                damage_threshold = 25;
 		break;
-    case 2:
-        break;
+        case 2:
+                break;
 	// Cardassians
 	case 3:
 		escape_chance = this->ship_reference->tpl.value_6*0.3 + this->ship_reference->tpl.value_7*0.4
@@ -95,53 +95,53 @@ bool cshipclass::check_systems()
 		if(escape_chance <  1.0) escape_chance = 1.0;
 		if(escape_chance > 80.0) escape_chance = 80.0;
 		escape_roll = (this->party == ATTACKER ? rand()%90 : rand()%100);
-        damage_threshold = 15;
+                damage_threshold = 25;
 		break;
-    case 4:
-        break;
-    // Ferengi
-    case 5:
+        case 4:
+            break;
+        // Ferengi
+        case 5:
 		escape_chance = this->ship_reference->tpl.value_6*0.3 + this->ship_reference->tpl.value_7*0.4
 				+ this->ship_reference->tpl.value_8*0,4 + this->ship_reference->tpl.value_11*0.5;
 		if(escape_chance <  1.0) escape_chance = 1.0;
 		if(escape_chance > 95.0) escape_chance = 95.0;
 		escape_roll = (this->party == ATTACKER ? rand()%100 : rand()%100);    
-        damage_threshold = 25;
-        break;
-    case 6:
-    case 7:
-    case 8:
-    case 9:
-        break;
-    // Krenim
-    case 10:
-        escape_chance = this->ship_reference->tpl.value_6*0.3 + this->ship_reference->tpl.value_7*0.4
+                damage_threshold = 25;
+                break;
+        case 6:
+        case 7:
+        case 8:
+        case 9:
+                break;
+        // Krenim
+        case 10:
+                escape_chance = this->ship_reference->tpl.value_6*0.3 + this->ship_reference->tpl.value_7*0.4
 				+ this->ship_reference->tpl.value_8*0,4 + this->ship_reference->tpl.value_11*0.5;
 		if(escape_chance <  1.0) escape_chance = 1.0;
 		if(escape_chance > 90.0) escape_chance = 90.0;
 		escape_roll = (this->party == ATTACKER ? rand()%100 : rand()%100);
-        damage_threshold = 20;
-        break;
-    // Kazon
-    case 11:
+                damage_threshold = 25;
+                break;
+        // Kazon
+        case 11:
 		escape_chance = this->ship_reference->tpl.value_6*0.3 + this->ship_reference->tpl.value_7*0.4
 				+ this->ship_reference->tpl.value_8*0,4 + this->ship_reference->tpl.value_11*0.5;
 		if(escape_chance <  1.0) escape_chance = 1.0;
 		if(escape_chance > 95.0) escape_chance = 95.0;
 		escape_roll = (this->party == ATTACKER ? rand()%100 : rand()%100);
-        damage_threshold = 25;
-        break;
-    case 12:
-        break;
-    // Settlers
-    case 13:
+                damage_threshold = 25;
+                break;
+        case 12:
+                break;
+        // Settlers
+        case 13:
 		escape_chance = this->ship_reference->tpl.value_6*0.3 + this->ship_reference->tpl.value_7*0.4
 				+ this->ship_reference->tpl.value_8*0,4 + this->ship_reference->tpl.value_11*0.5;
 		if(escape_chance <  1.0) escape_chance = 1.0;
 		if(escape_chance > 95.0) escape_chance = 95.0;
 		escape_roll = (this->party == ATTACKER ? rand()%100 : rand()%100);
-        damage_threshold = 15;    
-        break;
+                damage_threshold = 25;    
+                break;
 	default:
 		return 0;
 		break;
@@ -149,7 +149,7 @@ bool cshipclass::check_systems()
 
 	damage_threshold = damage_threshold - (this->ship_reference->experience*0.1);
     
-    if(damage_threshold < 1) damage_threshold = 1;
+        if(damage_threshold < 1) damage_threshold = 1;
 	
 	damage_ratio = (this->ship_reference->hitpoints*100)/this->ship_reference->tpl.value_5;
 	
