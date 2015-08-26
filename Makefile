@@ -6,7 +6,7 @@ SF=	main.o defines.o db_core.o \
 CC=gcc
 CXX=g++
 LINKER=g++
-COPTS=-O3 -march=k8
+COPTS=-std=c++0x -O3 -march=k8
 LINKOPTS=-L/usr/lib64/mysql -lmysqlclient -lz
 
 all: $(APP)
