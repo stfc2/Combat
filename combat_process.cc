@@ -64,7 +64,11 @@ bool cshipclass::check_systems()
     
         if(this->ship_reference->tpl.ship_torso > 11) return 0; // Orbital guns either!!!!
 
-	if(this->ship_reference->tpl.race == 2 || this->ship_reference->tpl.race == 4 || this->ship_reference->tpl.race == 8 || this->ship_reference->tpl.race == 9) return 0;
+	if(this->ship_reference->tpl.race == 2 || 
+           this->ship_reference->tpl.race == 4 ||
+           this->ship_reference->tpl.race == 6 || 
+           this->ship_reference->tpl.race == 8 || 
+           this->ship_reference->tpl.race == 9) return 0;
 
 	switch(this->ship_reference->tpl.race)
 	{
@@ -237,16 +241,15 @@ bool cshipclass::primary_shoot()
 	// in order to semplify?
 	if (this->target->ship_reference->tpl.value_12 > 0)
 		{
-			hitchance = this->ship_reference->tpl.value_6 + this->ship_reference->tpl.value_7
-				+ this->ship_reference->tpl.value_8 + this->ship_reference->tpl.value_11;
+			hitchance = (this->ship_reference->tpl.value_6 + this->ship_reference->tpl.value_7
+				  + this->ship_reference->tpl.value_8)*0,5 + this->ship_reference->tpl.value_11*1,5;
 			hitchance *= 0.1f;
 		}
 		else
 		{
-			hitchance = this->ship_reference->tpl.value_6 + this->ship_reference->tpl.value_7
-				+ (this->ship_reference->tpl.value_8 / 2);
+			hitchance = (this->ship_reference->tpl.value_6 + this->ship_reference->tpl.value_7 + this->ship_reference->tpl.value_8)*0,5
+				  + (this->ship_reference->tpl.value_11 - this->target->ship_reference->tpl.value_12)*1,5;
 			hitchance *= 0.1f;
-			hitchance += (this->ship_reference->tpl.value_11*0.12) - (this->target->ship_reference->tpl.value_12*0.125);
 		}
 	hitchance *= 0.1f;
 
@@ -341,16 +344,15 @@ bool cshipclass::secondary_shoot()
 
 	if (this->target->ship_reference->tpl.value_12 > 0)
 	{
-		hitchance = this->ship_reference->tpl.value_6 + this->ship_reference->tpl.value_7
-			+ this->ship_reference->tpl.value_8 + this->ship_reference->tpl.value_11;
+                hitchance = (this->ship_reference->tpl.value_6 + this->ship_reference->tpl.value_7
+		          + this->ship_reference->tpl.value_8)*0,5 + this->ship_reference->tpl.value_11*1,5;
 		hitchance *= 0.1f;
 	}
 	else
 	{
-		hitchance = this->ship_reference->tpl.value_6 + this->ship_reference->tpl.value_7
-			+ (this->ship_reference->tpl.value_8 / 2);
+		hitchance = (this->ship_reference->tpl.value_6 + this->ship_reference->tpl.value_7 + this->ship_reference->tpl.value_8)*0,5
+                          + (this->ship_reference->tpl.value_11 - this->target->ship_reference->tpl.value_12)*1,5;
 		hitchance *= 0.1f;
-		hitchance += (this->ship_reference->tpl.value_11*0.12) - (this->target->ship_reference->tpl.value_12*0.125);
 	}
 	hitchance *= 0.1f;
 	if (hitchance>15)	hitchance = 15;
@@ -445,9 +447,10 @@ s_ship *create_large_orbital()
 	tmp->unit_4=0;
 	tmp->firststrike=100;
 	tmp->shields=0;
-	tmp->rof=2;
-        tmp->rof2=2;
+	tmp->rof=10;
+        tmp->rof2=5;
 	tmp->torp=600;
+        tmp->atk_lvl=1;
 	tmp->captured = false;
 	tmp->fleed = false;
 	tmp->knockout = false;
@@ -463,7 +466,7 @@ s_ship *create_large_orbital()
 	tmp->tpl.value_7=20;
 	tmp->tpl.value_8=20;
 	tmp->tpl.value_10=0;
-	tmp->tpl.value_11=0;
+	tmp->tpl.value_11=36;
 	tmp->tpl.value_12=0;
 	return tmp;
 }
@@ -484,9 +487,10 @@ s_ship *create_small_orbital()
 	tmp->unit_4=0;
 	tmp->firststrike=100;
 	tmp->shields=0;
-	tmp->rof=1;
-        tmp->rof2=1;
-	tmp->torp=600;
+	tmp->rof=6;
+        tmp->rof2=0;
+	tmp->torp=0;
+        tmp->atk_lvl=0;        
 	tmp->captured = false;
 	tmp->fleed = false;
 	tmp->knockout = false;
@@ -502,7 +506,7 @@ s_ship *create_small_orbital()
 	tmp->tpl.value_7=20;
 	tmp->tpl.value_8=20;
 	tmp->tpl.value_10=0;
-	tmp->tpl.value_11=0;
+	tmp->tpl.value_11=36;
 	tmp->tpl.value_12=0;
 	return tmp;
 }

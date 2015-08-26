@@ -19,7 +19,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-
+#include <math.h>
 #include <map>
 #include <unordered_map>
 
@@ -61,12 +61,6 @@ static void update_ships(s_ship* cur_ship, int n_ships, int* ship_counter) {
 		if(cur_ship->changed == true) {
                     
                         experience = fmin (200, cur_ship->experience);
-                        
-                        // Damage Control
-                        if(cur_ship->previous_hitpoints > cur_ship->hitpoints) {
-                                rec_hp = cur_ship->previous_hitpoints * 0,07;
-                                cur_ship->hitpoints = fmin((cur_ship->previous_hitpoints -1), (cur_ship->hitpoints + rec_hp));
-                        }
 
 			if(cur_ship->knockout) {
 				if(cur_ship->xp_gained > 0.0) {
@@ -89,6 +83,12 @@ static void update_ships(s_ship* cur_ship, int n_ships, int* ship_counter) {
 					if(cur_ship->tpl.ship_torso == SHIP_TORSO_TRANSPORTER) --cur_ship->fleet->n_transporter;
 				}
 				else {
+                                        // Damage Control
+                                        if(cur_ship->previous_hitpoints > cur_ship->hitpoints) {
+                                                rec_hp = (cur_ship->previous_hitpoints - cur_ship->hitpoints) * ((5 + cur_ship->dmg_ctrl)/100);
+                                                cur_ship->hitpoints = fmin(cur_ship->previous_hitpoints, floor(cur_ship->hitpoints + rec_hp));
+                                        }
+                                        
 					if(!db.query((char*)"UPDATE ships SET hitpoints = %i, experience = %i, torp = %i WHERE ship_id = %i", (int)cur_ship->hitpoints, experience, (int)cur_ship->torp, cur_ship->ship_id)) {
 						DEBUG_LOG("Could not update ship %i\n", cur_ship->ship_id);
 					}
@@ -96,6 +96,13 @@ static void update_ships(s_ship* cur_ship, int n_ships, int* ship_counter) {
 
 			} // end-knockout
 			else {  
+
+                                // Damage Control
+                                if(cur_ship->previous_hitpoints > cur_ship->hitpoints) {
+                                        rec_hp = (cur_ship->previous_hitpoints - cur_ship->hitpoints) * ((5 + cur_ship->dmg_ctrl)/100);
+                                        cur_ship->hitpoints = fmin(cur_ship->previous_hitpoints, floor(cur_ship->hitpoints + rec_hp));
+                                }
+
 				if(!db.query((char*)"UPDATE ships SET hitpoints = %i, experience = %i, torp = %i WHERE ship_id = %i", (int)cur_ship->hitpoints, experience, (int)cur_ship->torp, cur_ship->ship_id)) {
 					DEBUG_LOG("Could not update ship %i\n", cur_ship->ship_id);
 				}
@@ -123,8 +130,9 @@ static void update_ships(s_ship* cur_ship, int n_ships, int* ship_counter) {
 	} // end-for
 }
 
-static void update_fleets(s_fleet* cur_fleet, int n_fleets) {
-	int n_resources, n_units;
+static void update_fleets(s_fleet* cur_fleet, int n_fleets, bool winner, int tick) {
+	int n_resources, n_units, new_move_id, system_id, distance_id, newposition_id, tick_start, tick_end;
+        c_db_result* res;
 	
 	for(int i = 0; i < n_fleets; ++i) {
 		// Fleet was destroyed
@@ -152,6 +160,64 @@ static void update_fleets(s_fleet* cur_fleet, int n_fleets) {
 				}
 #endif
 			}
+                        
+                        // CD - Fleet Movement Generator
+                        // CD - Let's give it a try
+                        
+                        if(winner) continue;
+                                
+                        tick_start = tick;
+                        tick_end   = tick+4;
+                        
+                        if((cur_fleet->position != 0) && (cur_fleet->position == cur_fleet->homebase)) {
+                                // Fleet was stationary at her own homebase; will LOOP on the planet
+                                if(!db.query((char*)"INSERT INTO scheduler_shipmovement"
+                                    "(user_id, move_status, move_exec_started, start, dest, move_begin, move_finish, n_ships, action_code, action_data)"
+                                    "VALUES (%i, 0, 0, %i, %i, %i, %i, %i, 28, 0)"
+                                    ,cur_fleet->owner, cur_fleet->position, cur_fleet->position, tick_start, tick_end, cur_fleet->n_ships )) {
+                                        DEBUG_LOG("Could not insert new movement data for fleet %i\n", cur_fleet->fleet_id);
+                                }
+                                
+                                new_move_id = (int)db.last_insert_id();
+                                
+                                if(!db.query((char*)"UPDATE ship_fleets SET planet_id = 0, move_id = %i WHERE fleet_id = %i", new_move_id, cur_fleet->fleet_id )) {
+                                        DEBUG_LOG("Could not update fleet %i\n", cur_fleet->fleet_id);
+                                }
+                                continue;
+                        }
+                        
+                        if(cur_fleet->position != 0) {
+                                // Fleet was stationary, will try to move on a near planet
+                                newposition_id = cur_fleet->position;
+                                if(!db.query(&res, (char*)"SELECT system_id, planet_distance_id FROM planets WHERE planet_id = %i", cur_fleet->position)) {
+                                        DEBUG_LOG("Could not read system data for fleet %i\n", cur_fleet->fleet_id);
+                                }
+                                res->fetch_row();
+                                system_id   = atoi(res->row[0]);
+                                distance_id = atoi(res->row[1]);
+                                if(!db.query(&res, (char*)"SELECT planet_id FROM planets WHERE system_id = %i AND planet_id <> %i AND "
+                                                          "planet_distance_id > %i ORDER BY planet_distance_id ASC LIMIT 0,1", system_id, cur_fleet->position, distance_id)) {
+                                        DEBUG_LOG("Could not get destination data for fleet %i\n", cur_fleet->fleet_id);
+                                }
+                                
+                                if(res->num_rows() > 0) {
+                                    res->fetch_row();
+                                    newposition_id = atoi(res->row[0]);
+                                }
+                                if(!db.query((char*)"INSERT INTO scheduler_shipmovement"
+                                    "(user_id, move_status, move_exec_started, start, dest, move_begin, move_finish, n_ships, action_code, action_data)"
+                                    "VALUES (%i, 0, 0, %i, %i, %i, %i, %i, 28, 0)"
+                                    ,cur_fleet->owner, cur_fleet->position, newposition_id, tick_start, tick_end, cur_fleet->n_ships )) {
+                                        DEBUG_LOG("Could not insert new movement data for fleet %i\n", cur_fleet->fleet_id);
+                                }
+                                
+                                new_move_id = (int)db.last_insert_id();
+                                
+                                if(!db.query((char*)"UPDATE ship_fleets SET planet_id = 0, move_id = %i WHERE fleet_id = %i", new_move_id, cur_fleet->fleet_id )) {
+                                        DEBUG_LOG("Could not update fleet %i\n", cur_fleet->fleet_id);
+                                }                                
+                                continue;    
+                        }
 		}
 	}
 }
@@ -164,6 +230,7 @@ bool finish_combat(s_move_data* move, int winner, char** argv) {
 
         int tmp_id;
         template_stat tmp_item;
+        int actual_tick;
         
         
 #if VERBOSE >= 1
@@ -184,6 +251,16 @@ bool finish_combat(s_move_data* move, int winner, char** argv) {
 
 	c_db_result* res;
 
+        if(!db.query(&res, (char*)"SELECT tick_id FROM config WHERE config_set_id = 0")) 
+        {
+                DEBUG_LOG("Could not query actual tick data from db");
+        }
+        else
+        {
+                res->fetch_row();
+                actual_tick = atoi(res->row[0]);
+        }
+        
 	/**
 	 ** 03/04/08 - AC: Introduce localization of the message strings
 	 **/
@@ -434,8 +511,15 @@ bool finish_combat(s_move_data* move, int winner, char** argv) {
 	update_ships(move->atk_ships, move->n_atk_ships, &new_n_atk_ships);
 	update_ships(move->dfd_ships, move->n_dfd_ships, &new_n_dfd_ships);
 
-	update_fleets(move->atk_fleets, move->n_atk_fleets);
-	update_fleets(move->dfd_fleets, move->n_dfd_fleets);
+        if(winner == -1) {
+                update_fleets(move->atk_fleets, move->n_atk_fleets, true, actual_tick);
+                update_fleets(move->dfd_fleets, move->n_dfd_fleets, false, actual_tick);
+        }
+        else {
+                update_fleets(move->atk_fleets, move->n_atk_fleets, false, actual_tick);
+                update_fleets(move->dfd_fleets, move->n_dfd_fleets, true, actual_tick);
+        }
+
 
 	for(user_map_it = user_xp_map.begin(); user_map_it != user_xp_map.end(); ++user_map_it) {
 #ifndef SIMULATOR

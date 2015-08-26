@@ -19,7 +19,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-
+#include <math.h>
 #include <map>
 
 #include "combat.hh"
@@ -85,7 +85,10 @@ static void prepare_fleets(c_db_result* res, s_fleet* cur_fleet) {
 		cur_fleet->unit_4 = atoi(res->row[9]);
 		cur_fleet->unit_5 = atoi(res->row[10]);
 		cur_fleet->unit_6 = atoi(res->row[11]);
-
+                cur_fleet->position = atoi(res->row[12]);
+                cur_fleet->homebase = atoi(res->row[13]);
+                cur_fleet->owner = atoi(res->row[14]);
+                
 		fleets_map[cur_fleet->fleet_id] = cur_fleet;
 
 		++cur_fleet;
@@ -164,7 +167,8 @@ bool prepare_combat(s_move_data* move, char** argv) {
 
 	// templates
 	if(!db.query(&res, (char*)"SELECT s.template_id, "
-			   "       st.value_1, st.value_2, st.value_3, st.value_4, st.value_5, st.value_6, st.value_7, st.value_8, st.value_10, st.value_11, st.value_12, st.ship_torso, st.race, st.ship_class "
+			   "       st.value_1, st.value_2, st.value_3, st.value_4, st.value_5, st.value_6, st.value_7, st.value_8, st.value_10, st.value_11, st.value_12, st.ship_torso, st.race, st.ship_class, "
+                           "       st.unit_5, st.unit_6 "
 			   "FROM (ships s) "
 			   "INNER JOIN ship_templates st ON st.id = s.template_id "
 			   "WHERE s.fleet_id IN (%s, %s) "
@@ -204,6 +208,8 @@ bool prepare_combat(s_move_data* move, char** argv) {
 		new_tpl->ship_torso = atoi(res->row[12]);
 		new_tpl->race = atoi(res->row[13]);
 		new_tpl->ship_class = atoi(res->row[14]);
+                new_tpl->unit_5 = atoi(res->row[15]);
+                new_tpl->unit_6 = atoi(res->row[16]);                
 
 #if VERBOSE >= 4
 		DEBUG_LOG("%i (type:  %i/%i values: %.0f/%.0f/%.0f/%i/%i/%.0f/%.0f/%.0f/%.1f/%i/%i)\n", cur_template_id, new_tpl->ship_torso, new_tpl->ship_class,
@@ -220,7 +226,7 @@ bool prepare_combat(s_move_data* move, char** argv) {
 
 
 	// attacker fleets
-	if(!db.query(&res, (char*)"SELECT fleet_id, n_ships, resource_1, resource_2, resource_3, resource_4, unit_1, unit_2, unit_3, unit_4, unit_5, unit_6 "
+	if(!db.query(&res, (char*)"SELECT fleet_id, n_ships, resource_1, resource_2, resource_3, resource_4, unit_1, unit_2, unit_3, unit_4, unit_5, unit_6, planet_id, homebase, user_id "
 			   "FROM ship_fleets WHERE fleet_id IN (%s)", atk_fleet_ids_str)) {
 		printf("0Could not query attacker's fleet data\n");
 
@@ -270,7 +276,7 @@ bool prepare_combat(s_move_data* move, char** argv) {
 	// defender fleets
 	fleets_map.clear();
 
-	if(!db.query(&res, (char*)"SELECT fleet_id, n_ships, resource_1, resource_2, resource_3, resource_4, unit_1, unit_2, unit_3, unit_4, unit_5, unit_6 "
+	if(!db.query(&res, (char*)"SELECT fleet_id, n_ships, resource_1, resource_2, resource_3, resource_4, unit_1, unit_2, unit_3, unit_4, unit_5, unit_6, planet_id, homebase, user_id "
 			   "FROM ship_fleets WHERE fleet_id IN (%s)", dfd_fleet_ids_str)) {
 		printf("0Could not query defender's fleet data\n");
 
@@ -288,7 +294,7 @@ bool prepare_combat(s_move_data* move, char** argv) {
 
 
 	// defender ships
-	if(!db.query(&res, (char*)"SELECT ship_id, fleet_id, user_id, template_id, experience, hitpoints, unit_1, unit_2, unit_3, unit_4, torp, rof FROM ships WHERE fleet_id IN (%s)", dfd_fleet_ids_str)) {
+	if(!db.query(&res, (char*)"SELECT ship_id, fleet_id, user_id, template_id, experience, hitpoints, unit_1, unit_2, unit_3, unit_4, torp, rof, rof2 FROM ships WHERE fleet_id IN (%s)", dfd_fleet_ids_str)) {
 		printf("0Could not query defender's ship data\n");
 
 		return false;
@@ -373,18 +379,198 @@ bool prepare_combat(s_move_data* move, char** argv) {
 	cur_ship = move->atk_ships;
 
 	for(int i = 0; i < move->n_atk_ships; ++i) {
-		rank_bonus = SHIP_RANK_0_BONUS;
+            
+                cur_ship->dmg_ctrl = 1*floor(cur_ship->tpl.unit_5 / 3); // 1 pnt.percent every three techs onboard, rounded down
+                
+                cur_ship->atk_lvl = set_atk_lvl(cur_ship->tpl.race);
+                
+                firststrike = 0;
 
-		if(cur_ship->experience < SHIP_RANK_1_LIMIT) { } // do nothing
-		else if(cur_ship->experience >= SHIP_RANK_9_LIMIT) rank_bonus = SHIP_RANK_9_BONUS;
+                // race bonus
+                switch(cur_ship->tpl.race) {
+                    case 0:
+                        // Fed bonus
+                        // Damage mitigation bonus
+                        // Shield bonus (value_4)
+                        if(cur_ship->experience >= SHIP_RANK_9_LIMIT) {
+                            cur_ship->dmg_ctrl = cur_ship->dmg_ctrl + 15;
+                            cur_ship->tpl.value_4 = cur_ship->tpl.value_4 * 1.15;
+                            break;
+                        }
+                        if(cur_ship->experience >= SHIP_RANK_2_LIMIT) {
+                            cur_ship->dmg_ctrl = cur_ship->dmg_ctrl + 15;
+                            break;
+                        }                        
+                        break;
+                    case 1:
+                        // Romulan bonus
+                        // First-strike bonus
+                        // Cloaking_bonus (value_12)
+                        if(cur_ship->experience >= SHIP_RANK_9_LIMIT) {
+                            firststrike = firststrike + 40;
+                            cur_ship->tpl.value_12 = cur_ship->tpl.value_12 + 10;
+                            break;
+                        }
+                        if(cur_ship->experience >= SHIP_RANK_2_LIMIT) {
+                            firststrike = firststrike + 40;
+                            break;
+                        }                        
+                        break;
+                    case 2:
+                        // Klingon bonus
+                        // First-strike bonus
+                        // Secondary Weapon bonus
+                        if(cur_ship->experience >= SHIP_RANK_9_LIMIT) {
+                            firststrike = firststrike + 40;
+                            cur_ship->tpl.value_2 = cur_ship->tpl.value_2 * 1.15;
+                            break;
+                        }
+                        if(cur_ship->experience >= SHIP_RANK_2_LIMIT) {
+                            firststrike = firststrike + 40;
+                            break;
+                        }                        
+                        break;
+                    case 3:
+                        // Cardassian bonus
+                        // Damage mitigation bonus
+                        // Primary Weapon bonus
+                        if(cur_ship->experience >= SHIP_RANK_9_LIMIT) {
+                            cur_ship->dmg_ctrl = cur_ship->dmg_ctrl + 15;
+                            cur_ship->tpl.value_1 = cur_ship->tpl.value_1 * 1.15;
+                            break;
+                        }
+                        if(cur_ship->experience >= SHIP_RANK_2_LIMIT) {
+                            cur_ship->dmg_ctrl = cur_ship->dmg_ctrl + 15;
+                            break;
+                        }                        
+                        break;
+                    case 4:
+                        // Dominion bonus
+                        // Primary Weapon bonus
+                        // Hull bonus (value_5)
+                        if(cur_ship->experience >= SHIP_RANK_9_LIMIT) {
+                            cur_ship->tpl.value_1 = cur_ship->tpl.value_1 * 1.15;
+                            cur_ship->hitpoints += (cur_ship->tpl.value_5 * 0.15);                            
+                            break;
+                        }
+                        if(cur_ship->experience >= SHIP_RANK_2_LIMIT) {
+                            cur_ship->dmg_ctrl = cur_ship->dmg_ctrl + 15;
+                            break;
+                        }
+                        break;
+                    case 9:
+                        // Hirogen bonus
+                        // First-Strike bonus
+                        // Rof/Rof2 bonus
+                        if(cur_ship->experience >= SHIP_RANK_9_LIMIT) {
+                            firststrike = firststrike + 50;
+                            cur_ship->rof++;
+                            cur_ship->rof2++;
+                            break;
+                        }
+                        if(cur_ship->experience >= SHIP_RANK_2_LIMIT) {
+                            firststrike = firststrike + 50;
+                            break;
+                        }
+                        break;
+                    case 11:
+                        // Kazon bonus
+                        // First-Strike bonus
+                        // Primary/Secondary Weapon bonus
+                        if(cur_ship->experience >= SHIP_RANK_9_LIMIT) {
+                            firststrike = firststrike + 25;
+                            cur_ship->tpl.value_1 = cur_ship->tpl.value_1 * 1.1;
+                            cur_ship->tpl.value_2 = cur_ship->tpl.value_2 * 1.1;
+                            break;
+                        }
+                        if(cur_ship->experience >= SHIP_RANK_2_LIMIT) {
+                            firststrike = firststrike + 25;
+                            break;
+                        }
+                        break;                        
+                    default:
+                        break;
+                }
+                
+                // class bonus
+                switch(cur_ship->tpl.ship_class) {
+                    case 3:
+                        // Damage mitigation bonus
+                        // Primary Weapon bonus dmg
+                        // Secondary Weapon bonus dmg
+                        if(cur_ship->experience >= SHIP_RANK_7_LIMIT) {
+                            cur_ship->dmg_ctrl = cur_ship->dmg_ctrl + 20;
+                            cur_ship->tpl.value_1 = cur_ship->tpl.value_1 * 1.1;
+                            cur_ship->tpl.value_2 = cur_ship->tpl.value_2 * 1.1;
+                            break;
+                        }
+                        if(cur_ship->experience >= SHIP_RANK_5_LIMIT) {
+                            cur_ship->dmg_ctrl = cur_ship->dmg_ctrl + 20;
+                            cur_ship->tpl.value_1 = cur_ship->tpl.value_1 * 1.1;
+                            break;
+                        }                        
+                        if(cur_ship->experience >= SHIP_RANK_1_LIMIT) {
+                            cur_ship->dmg_ctrl = cur_ship->dmg_ctrl + 20;
+                            break;
+                        }
+                        break;
+                    case 2:
+                        // Damage mitigation bonus
+                        // First-Strike bonus
+                        // Shields bonus
+                        if(cur_ship->experience >= SHIP_RANK_5_LIMIT) {
+                            cur_ship->dmg_ctrl = cur_ship->dmg_ctrl + 10;
+                            firststrike = firststrike + 30;
+                            cur_ship->tpl.value_4 = cur_ship->tpl.value_4 * 1.15;
+                            break;
+                        }
+                        if(cur_ship->experience >= SHIP_RANK_4_LIMIT) {
+                            cur_ship->dmg_ctrl = cur_ship->dmg_ctrl + 10;
+                            firststrike = firststrike + 30;
+                            break;
+                        }
+                        if(cur_ship->experience >= SHIP_RANK_1_LIMIT) {
+                            cur_ship->dmg_ctrl = cur_ship->dmg_ctrl + 10;
+                            break;
+                        }
+                        break;
+                    case 1:
+                        // Damage mitigation bonus
+                        // Agility bonus (value_8)
+                        // Sensor bonus (value_11)
+                        // Reaction bonus (value_6)
+                        if(cur_ship->experience >= SHIP_RANK_7_LIMIT) {
+                            cur_ship->dmg_ctrl = cur_ship->dmg_ctrl + 5;
+                            cur_ship->tpl.value_8 = cur_ship->tpl.value_8 + 10;
+                            cur_ship->tpl.value_11 = cur_ship->tpl.value_11 + 15;
+                            cur_ship->tpl.value_6 = cur_ship->tpl.value_6 + 15;
+                            break;
+                        }                        
+                        if(cur_ship->experience >= SHIP_RANK_5_LIMIT) {
+                            cur_ship->dmg_ctrl = cur_ship->dmg_ctrl + 5;
+                            cur_ship->tpl.value_8 = cur_ship->tpl.value_8 + 10;
+                            cur_ship->tpl.value_11 = cur_ship->tpl.value_11 + 15;
+                            break;
+                        }
+                        if(cur_ship->experience >= SHIP_RANK_4_LIMIT) {
+                            cur_ship->dmg_ctrl = cur_ship->dmg_ctrl + 5;
+                            cur_ship->tpl.value_8 = cur_ship->tpl.value_8 + 10;
+                            break;
+                        }
+                        if(cur_ship->experience >= SHIP_RANK_1_LIMIT) {
+                            cur_ship->dmg_ctrl = cur_ship->dmg_ctrl + 5;
+                            break;
+                        }                        
+                        break;
+                    default:
+                        break;
+                }
+                
+		if(cur_ship->experience < SHIP_RANK_0_LIMIT) { } // do nothing
 		else if(cur_ship->experience >= SHIP_RANK_8_LIMIT) rank_bonus = SHIP_RANK_8_BONUS;
-		else if(cur_ship->experience >= SHIP_RANK_7_LIMIT) rank_bonus = SHIP_RANK_7_BONUS;
 		else if(cur_ship->experience >= SHIP_RANK_6_LIMIT) rank_bonus = SHIP_RANK_6_BONUS;
-		else if(cur_ship->experience >= SHIP_RANK_5_LIMIT) rank_bonus = SHIP_RANK_5_BONUS;
-		else if(cur_ship->experience >= SHIP_RANK_4_LIMIT) rank_bonus = SHIP_RANK_4_BONUS;
 		else if(cur_ship->experience >= SHIP_RANK_3_LIMIT) rank_bonus = SHIP_RANK_3_BONUS;
-		else if(cur_ship->experience >= SHIP_RANK_2_LIMIT) rank_bonus = SHIP_RANK_2_BONUS;
-		else rank_bonus = SHIP_RANK_1_BONUS;
+		else rank_bonus = SHIP_RANK_0_BONUS;
 
 		// Recalculate ship's statistics (base stat + modifier) + ship's experience bonus
 
@@ -395,21 +581,18 @@ bool prepare_combat(s_move_data* move, char** argv) {
 		cur_ship->tpl.value_7 *= (rank_bonus + bonus_attacker);
 		cur_ship->tpl.value_8 *= (rank_bonus + bonus_attacker);
                 
-                // if(cur_ship->experience >= SHIP_RANK_TIER_1) cur_ship->atk_lvl = 1;
+                // rof1 bonus
+                if(cur_ship->experience < SHIP_RANK_TIER_1) { } // do nothing
+		else if(cur_ship->experience >= SHIP_RANK_TIER_4) cur_ship->rof = cur_ship->rof + SHIP_RANK_TIER_4_BONUS;
+		else if(cur_ship->experience >= SHIP_RANK_TIER_3) cur_ship->rof = cur_ship->rof + SHIP_RANK_TIER_3_BONUS;
+		else cur_ship->rof = cur_ship->rof + SHIP_RANK_TIER_1_BONUS;                
                 
-                cur_ship->atk_lvl = set_atk_lvl(cur_ship->tpl.race);
+                // rof2 bonus
+                if(cur_ship->experience < SHIP_RANK_TIER_2) { } // do nothing
+		else if(cur_ship->experience >= SHIP_RANK_TIER_5) cur_ship->rof2 = cur_ship->rof2 + SHIP_RANK_TIER_5_BONUS;
+		else cur_ship->rof2 = cur_ship->rof2 + SHIP_RANK_TIER_2_BONUS;    
                 
-                if(cur_ship->experience >= SHIP_RANK_TIER_1) cur_ship->rof++;                
-                
-                if(cur_ship->experience >= SHIP_RANK_TIER_2) cur_ship->rof++;
-                
-                if(cur_ship->experience >= SHIP_RANK_TIER_3) cur_ship->rof2++;
-                
-                if(cur_ship->experience >= SHIP_RANK_TIER_4) cur_ship->rof++;
-                
-                if(cur_ship->experience >= SHIP_RANK_TIER_5) cur_ship->rof2++;                
-                
-		firststrike = cur_ship->tpl.value_11 * 0.5 + cur_ship->tpl.value_6 * 2 + cur_ship->tpl.value_7 * 3 + cur_ship->tpl.value_8 + cur_ship->tpl.value_12;
+		firststrike = firststrike + (cur_ship->tpl.value_11 * 0.5 + cur_ship->tpl.value_6 * 2 + cur_ship->tpl.value_7 * 3 + cur_ship->tpl.value_8 + cur_ship->tpl.value_12);
 
 		if(firststrike < 1) firststrike = 1;
 
@@ -426,18 +609,198 @@ bool prepare_combat(s_move_data* move, char** argv) {
 	cur_ship = move->dfd_ships;
 
 	for(int i = 0; i < move->n_dfd_ships; ++i) {
-		rank_bonus = SHIP_RANK_0_BONUS;
 
-		if(cur_ship->experience < SHIP_RANK_1_LIMIT) { } // do nothing
-		else if(cur_ship->experience >= SHIP_RANK_9_LIMIT) rank_bonus = SHIP_RANK_9_BONUS;
+                cur_ship->dmg_ctrl = 1*floor(cur_ship->tpl.unit_5 / 3); // 1 pnt.percent every three techs onboard, rounded down
+                
+                cur_ship->atk_lvl = set_atk_lvl(cur_ship->tpl.race);
+                
+                firststrike = 0;
+
+                // race bonus
+                switch(cur_ship->tpl.race) {
+                    case 0:
+                        // Fed bonus
+                        // Damage mitigation bonus
+                        // Shield bonus (value_4)
+                        if(cur_ship->experience >= SHIP_RANK_9_LIMIT) {
+                            cur_ship->dmg_ctrl = cur_ship->dmg_ctrl + 15;
+                            cur_ship->tpl.value_4 = cur_ship->tpl.value_4 * 1.15;
+                            break;
+                        }
+                        if(cur_ship->experience >= SHIP_RANK_2_LIMIT) {
+                            cur_ship->dmg_ctrl = cur_ship->dmg_ctrl + 15;
+                            break;
+                        }                        
+                        break;
+                    case 1:
+                        // Romulan bonus
+                        // First-strike bonus
+                        // Cloaking_bonus (value_12)
+                        if(cur_ship->experience >= SHIP_RANK_9_LIMIT) {
+                            firststrike = firststrike + 40;
+                            cur_ship->tpl.value_12 = cur_ship->tpl.value_12 + 10;
+                            break;
+                        }
+                        if(cur_ship->experience >= SHIP_RANK_2_LIMIT) {
+                            firststrike = firststrike + 40;
+                            break;
+                        }                        
+                        break;
+                    case 2:
+                        // Klingon bonus
+                        // First-strike bonus
+                        // Secondary Weapon bonus
+                        if(cur_ship->experience >= SHIP_RANK_9_LIMIT) {
+                            firststrike = firststrike + 40;
+                            cur_ship->tpl.value_2 = cur_ship->tpl.value_2 * 1.15;
+                            break;
+                        }
+                        if(cur_ship->experience >= SHIP_RANK_2_LIMIT) {
+                            firststrike = firststrike + 40;
+                            break;
+                        }                        
+                        break;
+                    case 3:
+                        // Cardassian bonus
+                        // Damage mitigation bonus
+                        // Primary Weapon bonus
+                        if(cur_ship->experience >= SHIP_RANK_9_LIMIT) {
+                            cur_ship->dmg_ctrl = cur_ship->dmg_ctrl + 15;
+                            cur_ship->tpl.value_1 = cur_ship->tpl.value_1 * 1.15;
+                            break;
+                        }
+                        if(cur_ship->experience >= SHIP_RANK_2_LIMIT) {
+                            cur_ship->dmg_ctrl = cur_ship->dmg_ctrl + 15;
+                            break;
+                        }                        
+                        break;
+                    case 4:
+                        // Dominion bonus
+                        // Primary Weapon bonus
+                        // Hull bonus (value_5)
+                        if(cur_ship->experience >= SHIP_RANK_9_LIMIT) {
+                            cur_ship->tpl.value_1 = cur_ship->tpl.value_1 * 1.15;
+                            cur_ship->tpl.value_5 = cur_ship->tpl.value_5 * 1.15;                            
+                            break;
+                        }
+                        if(cur_ship->experience >= SHIP_RANK_2_LIMIT) {
+                            cur_ship->dmg_ctrl = cur_ship->dmg_ctrl + 15;
+                            break;
+                        }
+                        break;
+                    case 9:
+                        // Hirogen bonus
+                        // First-Strike bonus
+                        // Rof/Rof2 bonus
+                        if(cur_ship->experience >= SHIP_RANK_9_LIMIT) {
+                            firststrike = firststrike + 50;
+                            cur_ship->rof++;
+                            cur_ship->rof2++;
+                            break;
+                        }
+                        if(cur_ship->experience >= SHIP_RANK_2_LIMIT) {
+                            firststrike = firststrike + 50;
+                            break;
+                        }
+                        break;
+                    case 11:
+                        // Kazon bonus
+                        // First-Strike bonus
+                        // Primary/Secondary Weapon bonus
+                        if(cur_ship->experience >= SHIP_RANK_9_LIMIT) {
+                            firststrike = firststrike + 25;
+                            cur_ship->tpl.value_1 = cur_ship->tpl.value_1 * 1.1;
+                            cur_ship->tpl.value_2 = cur_ship->tpl.value_2 * 1.1;
+                            break;
+                        }
+                        if(cur_ship->experience >= SHIP_RANK_2_LIMIT) {
+                            firststrike = firststrike + 25;
+                            break;
+                        }
+                        break;                        
+                    default:
+                        break;
+                }                
+                
+                // class bonus
+                switch(cur_ship->tpl.ship_class) {
+                    case 3:
+                        // Damage mitigation bonus
+                        // Primary Weapon bonus dmg
+                        // Secondary Weapon bonus dmg
+                        if(cur_ship->experience >= SHIP_RANK_7_LIMIT) {
+                            cur_ship->dmg_ctrl = cur_ship->dmg_ctrl + 20;
+                            cur_ship->tpl.value_1 = cur_ship->tpl.value_1 * 1.1;
+                            cur_ship->tpl.value_2 = cur_ship->tpl.value_2 * 1.1;
+                            break;
+                        }
+                        if(cur_ship->experience >= SHIP_RANK_5_LIMIT) {
+                            cur_ship->dmg_ctrl = cur_ship->dmg_ctrl + 20;
+                            cur_ship->tpl.value_1 = cur_ship->tpl.value_1 * 1.1;
+                            break;
+                        }                        
+                        if(cur_ship->experience >= SHIP_RANK_1_LIMIT) {
+                            cur_ship->dmg_ctrl = cur_ship->dmg_ctrl + 20;
+                            break;
+                        }
+                        break;
+                    case 2:
+                        // Damage mitigation bonus
+                        // First-Strike bonus
+                        // Shields bonus (value_4)
+                        if(cur_ship->experience >= SHIP_RANK_5_LIMIT) {
+                            cur_ship->dmg_ctrl = cur_ship->dmg_ctrl + 10;
+                            firststrike = firststrike + 30;
+                            cur_ship->tpl.value_4 = cur_ship->tpl.value_4 * 1.15;
+                            break;
+                        }
+                        if(cur_ship->experience >= SHIP_RANK_4_LIMIT) {
+                            cur_ship->dmg_ctrl = cur_ship->dmg_ctrl + 10;
+                            firststrike = firststrike + 30;
+                            break;
+                        }
+                        if(cur_ship->experience >= SHIP_RANK_1_LIMIT) {
+                            cur_ship->dmg_ctrl = cur_ship->dmg_ctrl + 10;
+                            break;
+                        }
+                        break;
+                    case 1:
+                        // Damage mitigation bonus
+                        // Agility bonus (value_8)
+                        // Sensor bonus (value_11)
+                        // Reaction bonus (value_6)
+                        if(cur_ship->experience >= SHIP_RANK_7_LIMIT) {
+                            cur_ship->dmg_ctrl = cur_ship->dmg_ctrl + 5;
+                            cur_ship->tpl.value_8 = cur_ship->tpl.value_8 + 10;
+                            cur_ship->tpl.value_11 = cur_ship->tpl.value_11 + 15;
+                            cur_ship->tpl.value_6 = cur_ship->tpl.value_6 + 15;
+                            break;
+                        }                        
+                        if(cur_ship->experience >= SHIP_RANK_5_LIMIT) {
+                            cur_ship->dmg_ctrl = cur_ship->dmg_ctrl + 5;
+                            cur_ship->tpl.value_8 = cur_ship->tpl.value_8 + 10;
+                            cur_ship->tpl.value_11 = cur_ship->tpl.value_11 + 15;
+                            break;
+                        }
+                        if(cur_ship->experience >= SHIP_RANK_4_LIMIT) {
+                            cur_ship->dmg_ctrl = cur_ship->dmg_ctrl + 5;
+                            cur_ship->tpl.value_8 = cur_ship->tpl.value_8 + 10;
+                            break;
+                        }
+                        if(cur_ship->experience >= SHIP_RANK_1_LIMIT) {
+                            cur_ship->dmg_ctrl = cur_ship->dmg_ctrl + 5;
+                            break;
+                        }                        
+                        break;
+                    default:
+                        break;
+                }            
+            
+		if(cur_ship->experience < SHIP_RANK_0_LIMIT) { } // do nothing
 		else if(cur_ship->experience >= SHIP_RANK_8_LIMIT) rank_bonus = SHIP_RANK_8_BONUS;
-		else if(cur_ship->experience >= SHIP_RANK_7_LIMIT) rank_bonus = SHIP_RANK_7_BONUS;
 		else if(cur_ship->experience >= SHIP_RANK_6_LIMIT) rank_bonus = SHIP_RANK_6_BONUS;
-		else if(cur_ship->experience >= SHIP_RANK_5_LIMIT) rank_bonus = SHIP_RANK_5_BONUS;
-		else if(cur_ship->experience >= SHIP_RANK_4_LIMIT) rank_bonus = SHIP_RANK_4_BONUS;
 		else if(cur_ship->experience >= SHIP_RANK_3_LIMIT) rank_bonus = SHIP_RANK_3_BONUS;
-		else if(cur_ship->experience >= SHIP_RANK_2_LIMIT) rank_bonus = SHIP_RANK_2_BONUS;
-		else rank_bonus = SHIP_RANK_1_BONUS;
+		else rank_bonus = SHIP_RANK_0_BONUS;
 
 		cur_ship->tpl.value_1 *= (rank_bonus + bonus_defender);
 		cur_ship->tpl.value_2 *= (rank_bonus + bonus_defender);
@@ -446,21 +809,18 @@ bool prepare_combat(s_move_data* move, char** argv) {
 		cur_ship->tpl.value_7 *= (rank_bonus + bonus_defender);
 		cur_ship->tpl.value_8 *= (rank_bonus + bonus_defender);
                 
-                // if(cur_ship->experience >= SHIP_RANK_TIER_1) cur_ship->atk_lvl = 1;
+                // rof1 bonus
+                if(cur_ship->experience < SHIP_RANK_TIER_1) { } // do nothing
+		else if(cur_ship->experience >= SHIP_RANK_TIER_4) cur_ship->rof = cur_ship->rof + SHIP_RANK_TIER_4_BONUS;
+		else if(cur_ship->experience >= SHIP_RANK_TIER_3) cur_ship->rof = cur_ship->rof + SHIP_RANK_TIER_3_BONUS;
+		else cur_ship->rof = cur_ship->rof + SHIP_RANK_TIER_1_BONUS;                
                 
-                cur_ship->atk_lvl = set_atk_lvl(cur_ship->tpl.race);
+                // rof2 bonus
+                if(cur_ship->experience < SHIP_RANK_TIER_2) { } // do nothing
+		else if(cur_ship->experience >= SHIP_RANK_TIER_5) cur_ship->rof2 = cur_ship->rof2 + SHIP_RANK_TIER_5_BONUS;
+		else cur_ship->rof2 = cur_ship->rof2 + SHIP_RANK_TIER_2_BONUS;                
                 
-                if(cur_ship->experience >= SHIP_RANK_TIER_1) cur_ship->rof++;
-                    
-                if(cur_ship->experience >= SHIP_RANK_TIER_2) cur_ship->rof++;
-                
-                if(cur_ship->experience >= SHIP_RANK_TIER_3) cur_ship->rof2++;
-                
-                if(cur_ship->experience >= SHIP_RANK_TIER_4) cur_ship->rof++;
-                
-                if(cur_ship->experience >= SHIP_RANK_TIER_5) cur_ship->rof2++;
-                
-		firststrike = cur_ship->tpl.value_11 * 0.5 + cur_ship->tpl.value_6 * 2 + cur_ship->tpl.value_7 * 3 + cur_ship->tpl.value_8 + cur_ship->tpl.value_12;
+		firststrike = firststrike + (cur_ship->tpl.value_11 * 0.5 + cur_ship->tpl.value_6 * 2 + cur_ship->tpl.value_7 * 3 + cur_ship->tpl.value_8 + cur_ship->tpl.value_12);
 
 		if(firststrike < 1) firststrike = 1;
 
