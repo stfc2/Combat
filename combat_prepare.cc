@@ -48,7 +48,7 @@ static char set_atk_lvl(char race) {
             result = 0;
             break;
         case 2:         // Klingon
-            result = 0;
+            result = 1;
             break;
         case 3:         // Cardassian
             result = 1;
