@@ -326,7 +326,7 @@ bool cshipclass::primary_shoot()
 bool cshipclass::secondary_shoot()
 {
     
-        if(this->ship_reference->tpl.ship_torso<4) this->ship_reference->torp = 1; // Fake torpedoes for fighter, cargoes and coloships
+        if(this->ship_reference->tpl.ship_torso<3) this->ship_reference->torp = 1; // Fake torpedoes for fighter, cargoes and coloships
 
 	if (this->ship_reference->torp > 0)
 	{
