@@ -56,6 +56,9 @@ static char set_atk_lvl(char race) {
         case 4:         // Dominion
             result = 0;
             break;
+        case 6:         // Borg
+            result = 1;
+            break;
         case 9:         // Hirogeni
             result = 1;
             break;
@@ -454,9 +457,23 @@ bool prepare_combat(s_move_data* move, char** argv) {
                             break;
                         }
                         if(cur_ship->experience >= SHIP_RANK_2_LIMIT) {
-                            cur_ship->dmg_ctrl = cur_ship->dmg_ctrl + 15;
+                            cur_ship->tpl.value_1 = cur_ship->tpl.value_1 * 1.15;
                             break;
                         }
+                        break;
+                    case 6:
+                        // Borg bonus
+                        // Shield bonus (value_4)
+                        // Hull bonus (value_5)
+                        if(cur_ship->experience >= SHIP_RANK_9_LIMIT) {
+                            cur_ship->tpl.value_4 = cur_ship->tpl.value_4 * 1.34;
+                            cur_ship->hitpoints += (cur_ship->tpl.value_5 * 0.34);
+                            break;
+                        }
+                        if(cur_ship->experience >= SHIP_RANK_2_LIMIT) {
+                            cur_ship->tpl.value_4 = cur_ship->tpl.value_4 * 1.34;
+                            break;
+                        }                        
                         break;
                     case 9:
                         // Hirogen bonus
@@ -487,7 +504,21 @@ bool prepare_combat(s_move_data* move, char** argv) {
                             firststrike = firststrike + 25;
                             break;
                         }
-                        break;                        
+                        break;
+                    case 13:
+                        // Settlers bonus
+                        // Damage mitigations bonus
+                        // Hull bonus (value_5)
+                        if(cur_ship->experience >= SHIP_RANK_9_LIMIT) {
+                            cur_ship->dmg_ctrl = cur_ship->dmg_ctrl + 15;
+                            cur_ship->hitpoints += (cur_ship->tpl.value_5 * 0.10);
+                            break;
+                        }
+                        if(cur_ship->experience >= SHIP_RANK_2_LIMIT) {
+                            cur_ship->dmg_ctrl = cur_ship->dmg_ctrl + 15;
+                            break;
+                        }                        
+                        break;
                     default:
                         break;
                 }
